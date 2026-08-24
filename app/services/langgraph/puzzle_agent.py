@@ -176,9 +176,19 @@ canvas_designer = llm.with_structured_output(CanvasDesign)
 class AIInput(TypedDict):
     language: Literal["ja", "zh", "en"]
     question: str
-    sentence: str
+    story_context: "StoryContext"
     canvas: dict[str, object]
     audio: NotRequired[dict[str, object]]
+
+
+class StoryStepContext(TypedDict):
+    step_order: int
+    sentence: str
+
+
+class StoryContext(TypedDict):
+    previous_steps: list[StoryStepContext]
+    current_step: StoryStepContext
 
 
 class State(TypedDict):
@@ -248,7 +258,7 @@ async def llm_call_1(state: State):
     analysis_input = {
         "language": language,
         "question": state["input"]["question"],
-        "sentence": state["input"]["sentence"],
+        "story_context": state["input"]["story_context"],
         "current_canvas": state["input"]["canvas"],
         "current_audio": state["input"].get("audio", {}),
         "available_icons": asset_context["icons"],
@@ -350,7 +360,7 @@ async def llm_call_2(state: State):
     design_input = {
         "language": language,
         "question": state["input"]["question"],
-        "sentence": state["input"]["sentence"],
+        "story_context": state["input"]["story_context"],
         "current_canvas": state["input"]["canvas"],
         "current_audio": state["input"].get("audio", {}),
         "available_icons": asset_context["icons"],
@@ -539,7 +549,13 @@ async def main(
         "input": {
             "language": language,
             "question": question,
-            "sentence": sentence,
+            "story_context": {
+                "previous_steps": [],
+                "current_step": {
+                    "step_order": 1,
+                    "sentence": sentence,
+                },
+            },
             "canvas": canvas,
             "audio": audio,
         }

@@ -42,25 +42,29 @@ async def get_answer(request:AIQuestionRequest,
     started_at = time.perf_counter()
     ai_input = {}
     try:
-        sentence = db.execute(
+        story_steps = db.execute(
             """
-            SELECT stpt.story_step_id, stpt.sentence
+            SELECT
+                stpt.story_step_id,
+                stp.step_order,
+                stpt.sentence
             FROM story_steps AS stp
             JOIN story_step_translations AS stpt
                 ON stpt.story_step_id = stp.id
             WHERE stp.story_id = ?
-            AND stp.step_order = ?
+            AND stp.step_order <= ?
             AND stpt.language = ?
+            ORDER BY stp.step_order
             """,
             (
                 request.story_id,
                 request.step_order,
                 x_language,
             ),
-        ).fetchone()
+        ).fetchall()
     except sqlite3.DatabaseError as e:
         logger.exception(
-            "Failed to get story sentence: "
+            "Failed to get story context: "
             "story_id=%s, step_order=%s, language=%s",
             request.story_id,
             request.step_order,
@@ -68,18 +72,39 @@ async def get_answer(request:AIQuestionRequest,
         )
         raise HTTPException(
             status_code=500,
-            detail="Failed to get story sentence"
+            detail="Failed to get story context"
         ) from e
-    
-    if sentence is None:
+
+    if not story_steps or story_steps[-1]["step_order"] != request.step_order:
+        logger.warning(
+            "AI story step not found | story_id=%s | step_order=%s | "
+            "language=%s",
+            request.story_id,
+            request.step_order,
+            x_language,
+        )
         raise HTTPException(
             status_code=404,
             detail="Story step not found"
         )
     else:
+        current_step = story_steps[-1]
+        previous_steps = [
+            {
+                "step_order": row["step_order"],
+                "sentence": row["sentence"],
+            }
+            for row in story_steps[:-1]
+        ]
         ai_input["language"] = x_language
         ai_input["question"] = request.user_request
-        ai_input["sentence"] = sentence["sentence"]
+        ai_input["story_context"] = {
+            "previous_steps": previous_steps,
+            "current_step": {
+                "step_order": current_step["step_order"],
+                "sentence": current_step["sentence"],
+            },
+        }
 
         keep_fields = {
             "instance_id",
@@ -139,7 +164,7 @@ async def get_answer(request:AIQuestionRequest,
     logger.info(
         "AI request started | user_id=%s | story_id=%s | step_order=%s | "
         "language=%s | question_chars=%d | canvas_objects=%d | "
-        "background=%s | audio_clips=%d",
+        "background=%s | audio_clips=%d | previous_steps=%d",
         current_user["id"],
         request.story_id,
         request.step_order,
@@ -148,6 +173,7 @@ async def get_answer(request:AIQuestionRequest,
         len(new_canvas["objects"]),
         new_canvas["background_key"],
         audio_clip_count,
+        len(previous_steps),
     )
 
     try:
