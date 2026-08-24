@@ -79,7 +79,7 @@ class AIQuestionRequest(BaseModel):
     story_id: int
     step_order: int
     canvas: dict
-    # audio: dict (音频顺序)
+    audio: dict = Field(default_factory=dict)
 
 
 class AIAnswer(BaseModel):

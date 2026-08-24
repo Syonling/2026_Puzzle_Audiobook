@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     openai_api_key : SecretStr
     llm_model : str
     openai_api_image_key: SecretStr
+    deepseek_api_key: SecretStr
 
     model_config = SettingsConfigDict(
         env_file = BASE_DIR / ".env",

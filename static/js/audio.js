@@ -1,4 +1,4 @@
-import { t } from "./i18n.js?v=20260819-10";
+import { t } from "./i18n.js?v=20260824-1";
 
 const DEFAULT_DURATION = 15;
 // 保留既有 ID 以兼容已保存项目；数组顺序就是界面与后端序列化顺序。
@@ -24,6 +24,9 @@ const effectSelection = document.querySelector("[data-audio-effect-selection]");
 const effectButtons = [...document.querySelectorAll("[data-audio-effect]")];
 const effectUndoButton = document.querySelector("[data-audio-effect-undo]");
 const effectResetButton = document.querySelector("[data-audio-effect-reset]");
+const backgroundVolumeControl = document.querySelector("[data-background-volume-control]");
+const backgroundVolumeInput = document.querySelector("[data-background-volume]");
+const backgroundVolumeOutput = document.querySelector("[data-background-volume-output]");
 const objectAudioPicker = document.querySelector("[data-object-audio-picker]");
 const objectAudioCurrent = document.querySelector("[data-object-audio-current]");
 const objectAudioName = document.querySelector("[data-object-audio-name]");
@@ -54,7 +57,9 @@ let objectTransformFrame = 0;
 let audioMutationRevision = 0;
 let isAIPreviewLocked = false;
 let selectedClipId = null;
-let previousEffectsSnapshot = null;
+let previousClipEditSnapshot = null;
+let isEditingBackgroundVolume = false;
+let backgroundVolumeChanged = false;
 let selectedCanvasObject = null;
 let objectAudioChoiceRevision = 0;
 let isChangingObjectAudio = false;
@@ -386,7 +391,7 @@ async function changeSelectedObjectAudio(option) {
             selected_audio_key: nextKey,
             audio_url: option?.audio_url ?? null,
         };
-        previousEffectsSnapshot = null;
+        previousClipEditSnapshot = null;
         if (existingClip?.clip_id === selectedClipId && !option) clearEffectsSelection();
         notifyCanvasObjectAudioChoice(object, option);
         renderAudio();
@@ -402,15 +407,77 @@ async function changeSelectedObjectAudio(option) {
     }
 }
 
-function getSelectedEffectsClip() {
+function getSelectedEditableClip() {
     if (!selectedClipId) return null;
-    return getTrack(getActiveAudio(), "effects")?.clips.find(
-        (clip) => clip.clip_id === selectedClipId,
-    ) || null;
+    return getActiveAudio()?.tracks
+        .filter((track) => track.id !== LOCKED_TRACK_ID)
+        .flatMap((track) => track.clips)
+        .find((clip) => clip.clip_id === selectedClipId) || null;
+}
+
+function getSelectedBackgroundClip() {
+    const clip = getSelectedEditableClip();
+    return clip?.object_instance_id === BACKGROUND_AUDIO_INSTANCE_ID ? clip : null;
+}
+
+function updateBackgroundVolumeControl() {
+    const clip = getSelectedBackgroundClip();
+    if (!backgroundVolumeControl) return;
+    backgroundVolumeControl.hidden = !clip;
+    if (!clip) return;
+    const volume = Math.min(2, Math.max(0, Number(clip.volume) || 0));
+    if (backgroundVolumeInput && !isEditingBackgroundVolume) {
+        backgroundVolumeInput.value = String(volume);
+    }
+    if (backgroundVolumeInput) backgroundVolumeInput.disabled = isAIPreviewLocked;
+    if (backgroundVolumeOutput) {
+        backgroundVolumeOutput.value = `${Math.round(volume * 100)}%`;
+        backgroundVolumeOutput.textContent = backgroundVolumeOutput.value;
+    }
+}
+
+function beginBackgroundVolumeEdit() {
+    const clip = getSelectedBackgroundClip();
+    if (isEditingBackgroundVolume || !clip || isAIPreviewLocked) return;
+    isEditingBackgroundVolume = true;
+    backgroundVolumeChanged = false;
+    previousClipEditSnapshot = {
+        clipId: clip.clip_id,
+        effects: cloneEffects(clip.effects),
+        volume: clip.volume,
+    };
+    notifyHistoryCheckpoint();
+}
+
+function commitBackgroundVolumeEdit() {
+    if (!isEditingBackgroundVolume) return;
+    isEditingBackgroundVolume = false;
+    const changed = backgroundVolumeChanged;
+    backgroundVolumeChanged = false;
+    if (changed) notifyAudioChanged();
+    updateEffectControls();
+}
+
+function setSelectedBackgroundVolume(value) {
+    const clip = getSelectedBackgroundClip();
+    if (!clip || isAIPreviewLocked) return;
+    const volume = Math.min(2, Math.max(0, Number(value) || 0));
+    if (clip.volume === volume) return;
+    if (!isEditingBackgroundVolume) beginBackgroundVolumeEdit();
+    clip.volume = volume;
+    backgroundVolumeChanged = true;
+    const nodes = activeClipNodes.get(clip.clip_id);
+    if (nodes && audioContext) {
+        nodes.gain.gain.setTargetAtTime(volume, audioContext.currentTime, 0.015);
+    }
+    if (backgroundVolumeOutput) {
+        backgroundVolumeOutput.value = `${Math.round(volume * 100)}%`;
+        backgroundVolumeOutput.textContent = backgroundVolumeOutput.value;
+    }
 }
 
 function updateEffectControls() {
-    const clip = getSelectedEffectsClip();
+    const clip = getSelectedEditableClip();
     if (!clip && selectedClipId) selectedClipId = null;
     const selectedClip = clip || null;
     if (effectSelection) {
@@ -433,17 +500,28 @@ function updateEffectControls() {
     if (effectUndoButton) {
         effectUndoButton.disabled =
             !selectedClip
-            || !previousEffectsSnapshot
-            || previousEffectsSnapshot.clipId !== selectedClip.clip_id
+            || !previousClipEditSnapshot
+            || previousClipEditSnapshot.clipId !== selectedClip.clip_id
             || isAIPreviewLocked;
     }
     if (effectResetButton) {
-        effectResetButton.disabled = !selectedClip || isAIPreviewLocked;
+        const hasEnabledEffect = Boolean(selectedClip) && Object.values(
+            selectedClip.effects,
+        ).some((effect) => effect.enabled);
+        const canResetBackgroundVolume =
+            selectedClip?.object_instance_id === BACKGROUND_AUDIO_INSTANCE_ID
+            && selectedClip.volume !== 1;
+        effectResetButton.disabled =
+            !selectedClip
+            || (!hasEnabledEffect && !canResetBackgroundVolume)
+            || isAIPreviewLocked;
     }
+    updateBackgroundVolumeControl();
 }
 
-function selectEffectsClip(clipId) {
-    if (selectedClipId !== clipId) previousEffectsSnapshot = null;
+function selectEditableClip(clipId) {
+    commitBackgroundVolumeEdit();
+    if (selectedClipId !== clipId) previousClipEditSnapshot = null;
     selectedClipId = clipId;
     document.querySelectorAll(".audio-clip").forEach((element) => {
         element.classList.toggle("is-selected", element.dataset.clipId === clipId);
@@ -452,22 +530,24 @@ function selectEffectsClip(clipId) {
 }
 
 function mutateSelectedEffects(mutator) {
-    const clip = getSelectedEffectsClip();
+    const clip = getSelectedEditableClip();
     if (!clip || isAIPreviewLocked) return;
-    previousEffectsSnapshot = {
+    previousClipEditSnapshot = {
         clipId: clip.clip_id,
         effects: cloneEffects(clip.effects),
+        volume: clip.volume,
     };
     notifyHistoryCheckpoint();
     haltPlayback();
-    mutator(clip.effects);
+    mutator(clip.effects, clip);
     renderAudio();
     notifyAudioChanged();
 }
 
 function clearEffectsSelection() {
+    commitBackgroundVolumeEdit();
     selectedClipId = null;
-    previousEffectsSnapshot = null;
+    previousClipEditSnapshot = null;
     updateEffectControls();
 }
 
@@ -548,7 +628,7 @@ function createClipElement(clip, duration, trackId) {
     button.dataset.clipId = clip.clip_id;
     const isLockedTrack = trackId === LOCKED_TRACK_ID;
     button.classList.toggle("is-track-locked", isLockedTrack);
-    button.classList.toggle("is-selected", trackId === "effects" && clip.clip_id === selectedClipId);
+    button.classList.toggle("is-selected", !isLockedTrack && clip.clip_id === selectedClipId);
     button.style.left = (clip.start_time / duration * 100) + "%";
     button.style.width = (clip.duration / duration * 100) + "%";
     button.title = t("audio.clipDetail", {
@@ -560,14 +640,14 @@ function createClipElement(clip, duration, trackId) {
         : t("audio.dragClip", { name: displayName }));
     if (!isLockedTrack) {
         button.addEventListener("pointerdown", (event) => {
-            if (trackId === "effects") selectEffectsClip(clip.clip_id);
+            selectEditableClip(clip.clip_id);
             beginClipDrag(event, clip, button);
         });
         button.addEventListener("keydown", (event) => {
-            if (trackId !== "effects" || (event.key !== "Enter" && event.key !== " ")) return;
+            if (event.key !== "Enter" && event.key !== " ") return;
             event.preventDefault();
             event.stopPropagation();
-            selectEffectsClip(clip.clip_id);
+            selectEditableClip(clip.clip_id);
         });
     }
     const label = document.createElement("span");
@@ -1121,6 +1201,7 @@ async function handleCanvasObjectAdded(detail) {
         trim_start: 0,
         trim_end: 1,
         duration: 1,
+        effects: object.effects,
         ...(detail.audioProperties || deriveAudioFromObject(object, detail.canvasWidth)),
     });
     track.clips.push(clip);
@@ -1179,7 +1260,7 @@ async function handleCanvasBackgroundChanged(detail) {
     });
 
     const background = detail.background;
-    if (background?.audio_url) {
+    if (background?.audio_url && background.audio_enabled !== false) {
         await handleCanvasObjectAdded({
             context: detail.context,
             object: {
@@ -1246,6 +1327,11 @@ async function handleCanvasObjectsReplaced(detail) {
             });
         }
     }
+    await handleCanvasBackgroundChanged({
+        context: detail.context,
+        background: detail.background ?? null,
+        responseToken: detail.responseToken,
+    });
     notifyAudioChanged();
 }
 
@@ -1311,7 +1397,7 @@ export function restoreActiveAudioSnapshot(audio) {
     cancelAnimationFrame(objectTransformFrame);
     objectTransformFrame = 0;
     pendingObjectTransforms.clear();
-    previousEffectsSnapshot = null;
+    previousClipEditSnapshot = null;
     clearObjectAudioSelection();
     currentTime = 0;
     audioCache.set(activeAudioKey, normalizeAudio(audio));
@@ -1378,32 +1464,49 @@ effectButtons.forEach((button) => {
     });
 });
 effectUndoButton?.addEventListener("click", () => {
-    const clip = getSelectedEffectsClip();
+    const clip = getSelectedEditableClip();
     if (
         !clip
-        || !previousEffectsSnapshot
-        || previousEffectsSnapshot.clipId !== clip.clip_id
+        || !previousClipEditSnapshot
+        || previousClipEditSnapshot.clipId !== clip.clip_id
         || isAIPreviewLocked
     ) return;
-    const snapshot = previousEffectsSnapshot;
-    previousEffectsSnapshot = null;
+    const snapshot = previousClipEditSnapshot;
+    previousClipEditSnapshot = null;
     notifyHistoryCheckpoint();
     haltPlayback();
     clip.effects = normalizeEffects(snapshot.effects);
+    if (
+        clip.object_instance_id === BACKGROUND_AUDIO_INSTANCE_ID
+        && Number.isFinite(Number(snapshot.volume))
+    ) {
+        clip.volume = Math.min(2, Math.max(0, Number(snapshot.volume)));
+    }
     renderAudio();
     notifyAudioChanged();
 });
 effectResetButton?.addEventListener("click", () => {
-    const clip = getSelectedEffectsClip();
+    const clip = getSelectedEditableClip();
     if (!clip || isAIPreviewLocked) return;
     const hasEnabledEffect = Object.values(clip.effects).some((effect) => effect.enabled);
-    if (!hasEnabledEffect) return;
-    mutateSelectedEffects((effects) => {
+    const shouldResetBackgroundVolume =
+        clip.object_instance_id === BACKGROUND_AUDIO_INSTANCE_ID
+        && clip.volume !== 1;
+    if (!hasEnabledEffect && !shouldResetBackgroundVolume) return;
+    mutateSelectedEffects((effects, selectedClip) => {
         Object.values(effects).forEach((effect) => {
             effect.enabled = false;
         });
+        if (selectedClip.object_instance_id === BACKGROUND_AUDIO_INSTANCE_ID) {
+            selectedClip.volume = 1;
+        }
     });
 });
+backgroundVolumeInput?.addEventListener("input", (event) => {
+    setSelectedBackgroundVolume(event.currentTarget.value);
+});
+backgroundVolumeInput?.addEventListener("change", commitBackgroundVolumeEdit);
+backgroundVolumeInput?.addEventListener("pointercancel", commitBackgroundVolumeEdit);
 playhead?.addEventListener("pointerdown", beginPlayheadDrag);
 editor?.addEventListener("pointerdown", (event) => {
     if (

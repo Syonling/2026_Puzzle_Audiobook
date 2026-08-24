@@ -1,5 +1,5 @@
-import { request } from "./api.js?v=20260819-10";
-import { t } from "./i18n.js?v=20260819-10";
+import { request } from "./api.js?v=20260824-1";
+import { t } from "./i18n.js?v=20260824-1";
 
 const SESSION_KEY = "puzzleAudiobook.user";
 const APP_STORAGE_PREFIX = "puzzleAudiobook.";

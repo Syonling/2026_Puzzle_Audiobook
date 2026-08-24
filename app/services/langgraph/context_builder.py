@@ -1,11 +1,21 @@
 import sqlite3
-from fastapi import Depends, HTTPException
+import logging
+import time
+from typing import Literal, TypedDict
 
-from app.core.config import BASE_DIR, DB_DIR
-from app.db.database import create_connection
-from app.core.config import settings
-# from app.schemas.schemas import AssetsList
+from fastapi import HTTPException
 from langchain_openai import ChatOpenAI
+
+from app.core.config import DB_DIR, settings
+from app.db.database import create_connection
+from app.services.langgraph.audio_effect_presets import (
+    AUDIO_EFFECT_DESCRIPTIONS,
+)
+from app.services.langgraph.background_descriptions import (
+    BACKGROUND_DESCRIPTIONS,
+)
+
+logger = logging.getLogger(__name__)
 
 llm = ChatOpenAI(
     model=settings.llm_model, 
@@ -15,25 +25,134 @@ llm = ChatOpenAI(
     )
 
 
-def get_assets_list() -> tuple[list[str], list[str], list[str]]:
+Language = Literal["zh", "ja", "en"]
+
+
+class AudioOptionContext(TypedDict):
+    audio_key: str
+    name: str
+    is_default: bool
+
+
+class IconContext(TypedDict):
+    asset_key: str
+    audio_options: list[AudioOptionContext]
+
+
+class BackgroundContext(TypedDict):
+    background_key: str
+    scene_description: str
+    has_audio: bool
+
+
+class AssetContext(TypedDict):
+    icons: list[IconContext]
+    backgrounds: list[BackgroundContext]
+    audio_effects: list[dict[str, str]]
+
+
+def get_asset_context(language: Language = "zh") -> AssetContext:
+    """Return the exact asset, audio-option, background, and effect choices."""
+    started_at = time.perf_counter()
     db = create_connection(DB_DIR)
 
     try:
-        rows = db.execute(
+        asset_rows = db.execute(
             "SELECT asset_key, category, audio_url FROM assets"
         ).fetchall()
+        audio_rows = db.execute(
+            """
+            SELECT
+                a.asset_key,
+                aao.audio_key,
+                COALESCE(aaot.name, aao.audio_key) AS name,
+                aao.is_default,
+                aao.sort_order
+            FROM assets AS a
+            JOIN asset_audio_options AS aao
+                ON aao.asset_id = a.id
+            LEFT JOIN asset_audio_option_translations AS aaot
+                ON aaot.audio_option_id = aao.id
+                AND aaot.language = ?
+            WHERE a.category != 'background'
+            ORDER BY a.id, aao.sort_order, aao.id
+            """,
+            (language,),
+        ).fetchall()
 
-        icon_list = [row["asset_key"] for row in rows if row["category"] != "background"]
-        background_list = [row["asset_key"] for row in rows if row["category"] == "background"]
-        audio_icon_list = [
-            row["asset_key"]
-            for row in rows
-            if row["category"] != "background" and row["audio_url"]
+        audio_options_by_asset: dict[str, list[AudioOptionContext]] = {}
+        for row in audio_rows:
+            audio_options_by_asset.setdefault(row["asset_key"], []).append(
+                {
+                    "audio_key": row["audio_key"],
+                    "name": row["name"],
+                    "is_default": bool(row["is_default"]),
+                }
+            )
+
+        icons: list[IconContext] = [
+            {
+                "asset_key": row["asset_key"],
+                "audio_options": audio_options_by_asset.get(
+                    row["asset_key"],
+                    [],
+                ),
+            }
+            for row in asset_rows
+            if row["category"] != "background"
+        ]
+        backgrounds: list[BackgroundContext] = [
+            {
+                "background_key": row["asset_key"],
+                "scene_description": BACKGROUND_DESCRIPTIONS.get(
+                    row["asset_key"],
+                    "",
+                ),
+                "has_audio": bool(row["audio_url"]),
+            }
+            for row in asset_rows
+            if row["category"] == "background"
         ]
 
-        return icon_list, background_list, audio_icon_list
+        missing_descriptions = [
+            item["background_key"]
+            for item in backgrounds
+            if not item["scene_description"]
+        ]
+        if missing_descriptions:
+            logger.warning(
+                "Background descriptions missing | background_keys=%s",
+                missing_descriptions,
+            )
+
+        context: AssetContext = {
+            "icons": icons,
+            "backgrounds": backgrounds,
+            "audio_effects": [
+                {
+                    "effect_key": effect_key,
+                    "description": description,
+                }
+                for effect_key, description
+                in AUDIO_EFFECT_DESCRIPTIONS.items()
+            ],
+        }
+        logger.info(
+            "AI asset context loaded | language=%s | icons=%d | "
+            "audio_icons=%d | backgrounds=%d | elapsed_ms=%.1f",
+            language,
+            len(icons),
+            sum(bool(item["audio_options"]) for item in icons),
+            len(backgrounds),
+            (time.perf_counter() - started_at) * 1000,
+        )
+        return context
 
     except sqlite3.DatabaseError as e:
+        logger.exception(
+            "Failed to load AI asset context | language=%s",
+            language,
+        )
         raise HTTPException(
             status_code=500,
             detail="Failed to get assets"
@@ -41,6 +160,22 @@ def get_assets_list() -> tuple[list[str], list[str], list[str]]:
 
     finally:
         db.close()
+
+
+def get_assets_list() -> tuple[list[str], list[str], list[str]]:
+    """Compatibility helper for code that still expects the old three lists."""
+    context = get_asset_context()
+    icon_list = [item["asset_key"] for item in context["icons"]]
+    background_list = [
+        item["background_key"]
+        for item in context["backgrounds"]
+    ]
+    audio_icon_list = [
+        item["asset_key"]
+        for item in context["icons"]
+        if item["audio_options"]
+    ]
+    return icon_list, background_list, audio_icon_list
 
 
 

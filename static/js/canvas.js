@@ -1,4 +1,4 @@
-import { t } from "./i18n.js?v=20260819-10";
+import { t } from "./i18n.js?v=20260824-1";
 
 const EMPTY_CANVAS = Object.freeze({
     objects: [],
@@ -676,6 +676,10 @@ export function replaceActiveCanvasFromAI(aiCanvas, options = {}) {
             label: object.name || object.asset_key,
             image_url: object.image_url || `/static/images/${object.asset_key}.png`,
             audio_url: object.audio_url ?? null,
+            selected_audio_key: object.selected_audio_key ?? null,
+            effects: object.effects && typeof object.effects === "object"
+                ? { ...object.effects }
+                : {},
             start_offset_seconds:
                 object.start_offset_seconds !== null
                 && object.start_offset_seconds !== undefined
@@ -696,6 +700,17 @@ export function replaceActiveCanvasFromAI(aiCanvas, options = {}) {
             asset_key: backgroundKey,
             image_url: aiCanvas.background.image_url,
             audio_url: aiCanvas.background.audio_url ?? null,
+            audio_enabled: aiCanvas.background.audio_enabled === true,
+            start_offset_seconds:
+                aiCanvas.background.start_offset_seconds !== null
+                && aiCanvas.background.start_offset_seconds !== undefined
+                && Number.isFinite(Number(aiCanvas.background.start_offset_seconds))
+                    ? Math.max(0, Number(aiCanvas.background.start_offset_seconds))
+                    : null,
+            effects: aiCanvas.background.effects
+                && typeof aiCanvas.background.effects === "object"
+                    ? { ...aiCanvas.background.effects }
+                    : {},
         }
         : null;
 
@@ -713,12 +728,6 @@ export function replaceActiveCanvasFromAI(aiCanvas, options = {}) {
             canvasWidth: document.querySelector("[data-canvas-paper]")
                 ?.getBoundingClientRect().width,
             objects: objects.map((object) => ({ ...object })),
-            responseToken: options.responseToken ?? null,
-        },
-    }));
-    window.dispatchEvent(new CustomEvent("puzzle-audiobook:canvas-background-changed", {
-        detail: {
-            context: { ...activeContext },
             background: background ? {
                 instance_id: BACKGROUND_AUDIO_INSTANCE_ID,
                 asset_id: null,
@@ -726,6 +735,9 @@ export function replaceActiveCanvasFromAI(aiCanvas, options = {}) {
                 label: backgroundKey,
                 image_url: background.image_url,
                 audio_url: background.audio_url,
+                audio_enabled: background.audio_enabled,
+                start_offset_seconds: background.start_offset_seconds,
+                effects: background.effects,
             } : null,
             responseToken: options.responseToken ?? null,
         },

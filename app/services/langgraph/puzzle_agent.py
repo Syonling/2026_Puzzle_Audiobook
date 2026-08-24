@@ -1,5 +1,8 @@
 import json
 import asyncio
+import argparse
+import logging
+import time
 # from IPython.display import Image, display
 from pydantic import BaseModel, Field, ConfigDict
 from typing import TypedDict, NotRequired
@@ -7,8 +10,14 @@ from typing_extensions import Literal
 from langgraph.graph import StateGraph, START, END
 from langchain.messages import HumanMessage, SystemMessage
 
-from app.services.langgraph.context_builder import llm, get_assets_list
+from app.services.langgraph.audio_effect_presets import (
+    AudioEffectKey,
+    expand_audio_effects,
+)
+from app.services.langgraph.context_builder import llm, get_asset_context
 from app.services.langgraph.prompts import ROUTER_PROMPT, canvas_design_prompt, sound_analysis_prompt
+
+logger = logging.getLogger(__name__)
 # Schema for structured output to use as routing logic
 # 定义llm的输出格式。强制按格式输出
 class Route(BaseModel):
@@ -38,7 +47,38 @@ class SoundAnalysis(BaseModel):
             "Return null when no background matches."
         ),
     )
+    audio_suggestions: list["AudioSuggestion"] = Field(
+        default_factory=list,
+        max_length=12,
+        description=(
+            "Return optional audio choices only for story-relevant icon assets."
+        ),
+    )
     reasoning: str = Field(..., description="Return a concise explanation of the icon_keys, background_key, spatial-depth suggestions, and suggested audio order in no more than ten sentences.", max_length=1000)
+
+
+class AudioSuggestion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    asset_key: str = Field(
+        description="Return one exact asset_key from available_icons."
+    )
+    selected_audio_key: str = Field(
+        description=(
+            "Return one exact audio_key belonging to this asset_key."
+        )
+    )
+    audio_name: str = Field(
+        description=(
+            "Return the exact supplied name for selected_audio_key."
+        )
+    )
+    start_offset_seconds: float = Field(default=0, ge=0, le=60)
+    effect_keys: list[AudioEffectKey] = Field(
+        default_factory=list,
+        max_length=2,
+        description="Return at most two exact keys from available_audio_effects.",
+    )
 
 
 class CanvasObjectDesign(BaseModel):
@@ -76,6 +116,21 @@ class CanvasObjectDesign(BaseModel):
             "exists in available_audio_icons, otherwise return null."
         ),
     )
+    selected_audio_key: str | None = Field(
+        default=None,
+        description=(
+            "Return one exact audio_key belonging to asset_key, or null when "
+            "the icon has no audio option."
+        ),
+    )
+    effect_keys: list[AudioEffectKey] = Field(
+        default_factory=list,
+        max_length=2,
+        description=(
+            "Return at most two exact effect keys, and return an empty list "
+            "when selected_audio_key is null."
+        ),
+    )
 
 
 class CanvasDesign(BaseModel):
@@ -93,6 +148,22 @@ class CanvasDesign(BaseModel):
             "Return null when no background matches."
         ),
     )
+    background_audio_enabled: bool = Field(
+        default=False,
+        description=(
+            "Return true only when the selected background has audio and its "
+            "environment sound is useful to this scene."
+        ),
+    )
+    background_start_offset_seconds: float | None = Field(
+        default=None,
+        ge=0,
+        le=60,
+    )
+    background_effect_keys: list[AudioEffectKey] = Field(
+        default_factory=list,
+        max_length=2,
+    )
     reasoning: str = Field(..., description="Return a concise explanation of the objects, background_key, spatial-depth design, and main visual choices in no more than ten sentences.", max_length=2000)
 
 
@@ -107,6 +178,7 @@ class AIInput(TypedDict):
     question: str
     sentence: str
     canvas: dict[str, object]
+    audio: NotRequired[dict[str, object]]
 
 
 class State(TypedDict):
@@ -114,25 +186,77 @@ class State(TypedDict):
     decision: NotRequired[Literal["suggestion", "generate"]]
     output: NotRequired[dict[str, object]]
 
+
+def _asset_rules(asset_context):
+    icon_keys = {
+        item["asset_key"]
+        for item in asset_context["icons"]
+    }
+    background_by_key = {
+        item["background_key"]: item
+        for item in asset_context["backgrounds"]
+    }
+    audio_by_asset = {
+        item["asset_key"]: {
+            option["audio_key"]: option
+            for option in item["audio_options"]
+        }
+        for item in asset_context["icons"]
+    }
+    default_audio_by_asset = {
+        item["asset_key"]: next(
+            (
+                option["audio_key"]
+                for option in item["audio_options"]
+                if option["is_default"]
+            ),
+            None,
+        )
+        for item in asset_context["icons"]
+    }
+    return (
+        icon_keys,
+        background_by_key,
+        audio_by_asset,
+        default_audio_by_asset,
+    )
+
+
+def _validated_audio_key(
+    asset_key: str,
+    selected_audio_key: str | None,
+    audio_by_asset,
+    default_audio_by_asset,
+) -> str | None:
+    available = audio_by_asset.get(asset_key, {})
+    if selected_audio_key in available:
+        return selected_audio_key
+    return default_audio_by_asset.get(asset_key)
+
 # Nodes
 async def llm_call_1(state: State):
     """Analyze sentence and return icon_keys, background_key, and reasoning."""
-    icon_list, background_list, audio_icon_list = get_assets_list()
-    # 创建set类型数据，集合查询通常比列表更快（1）自动去重（2）适合判断某个值是否存在
-    allowed_icon_keys = set(icon_list)
-    allowed_background_keys = set(background_list)
-
+    language = state["input"].get("language", "zh")
+    asset_context = get_asset_context(language)
+    (
+        allowed_icon_keys,
+        background_by_key,
+        audio_by_asset,
+        default_audio_by_asset,
+    ) = _asset_rules(asset_context)
 
     analysis_input = {
-        "language": state["input"]["language"],
+        "language": language,
         "question": state["input"]["question"],
         "sentence": state["input"]["sentence"],
         "current_canvas": state["input"]["canvas"],
-        "available_icons": icon_list,
-        "available_backgrounds": background_list,
-        "available_audio_icons": audio_icon_list,
+        "current_audio": state["input"].get("audio", {}),
+        "available_icons": asset_context["icons"],
+        "available_backgrounds": asset_context["backgrounds"],
+        "available_audio_effects": asset_context["audio_effects"],
     }
 
+    started_at = time.perf_counter()
     result = await sound_analyzer.ainvoke(
         [
             SystemMessage(
@@ -146,6 +270,14 @@ async def llm_call_1(state: State):
             ),
         ]
     )
+    logger.info(
+        "LangGraph suggestion completed | icons=%d | audio_suggestions=%d | "
+        "background=%s | elapsed_ms=%.1f",
+        len(result.icon_keys),
+        len(result.audio_suggestions),
+        result.background_key,
+        (time.perf_counter() - started_at) * 1000,
+    )
 
     invalid_icon_keys = [
         icon_key
@@ -156,7 +288,7 @@ async def llm_call_1(state: State):
         result.background_key
         if (
             result.background_key is not None
-            and result.background_key not in allowed_background_keys
+            and result.background_key not in background_by_key
         )
         else None
     )
@@ -166,10 +298,39 @@ async def llm_call_1(state: State):
             f"LLM returned invalid keys: {invalid_icon_keys, invalid_background_key}"
         )
 
+    audio_suggestions = []
+    for suggestion in result.audio_suggestions:
+        if suggestion.asset_key not in allowed_icon_keys:
+            raise ValueError(
+                "LLM returned an audio suggestion for invalid icon: "
+                f"{suggestion.asset_key}"
+            )
+        audio_key = _validated_audio_key(
+            suggestion.asset_key,
+            suggestion.selected_audio_key,
+            audio_by_asset,
+            default_audio_by_asset,
+        )
+        if audio_key is None:
+            continue
+        option = audio_by_asset[suggestion.asset_key][audio_key]
+        effect_keys = list(dict.fromkeys(suggestion.effect_keys))
+        audio_suggestions.append(
+            {
+                "asset_key": suggestion.asset_key,
+                "selected_audio_key": audio_key,
+                "audio_name": option["name"],
+                "start_offset_seconds": suggestion.start_offset_seconds,
+                "effect_keys": effect_keys,
+                "effects": expand_audio_effects(effect_keys),
+            }
+        )
+
     return {
         "output": {
             "icon_keys": list(dict.fromkeys(result.icon_keys)),
             "background_key": result.background_key,
+            "audio_suggestions": audio_suggestions,
             "reasoning": result.reasoning,
         }
     }
@@ -177,19 +338,24 @@ async def llm_call_1(state: State):
 
 async def llm_call_2(state: State):
     """Generate objects, background_key, and reasoning for a complete canvas design."""
-    icon_list, background_list, audio_icon_list = get_assets_list()
-    allowed_icon_keys = set(icon_list)
-    allowed_background_keys = set(background_list)
-    allowed_audio_icon_keys = set(audio_icon_list)
+    language = state["input"].get("language", "zh")
+    asset_context = get_asset_context(language)
+    (
+        allowed_icon_keys,
+        background_by_key,
+        audio_by_asset,
+        default_audio_by_asset,
+    ) = _asset_rules(asset_context)
 
     design_input = {
-        "language": state["input"]["language"],
+        "language": language,
         "question": state["input"]["question"],
         "sentence": state["input"]["sentence"],
         "current_canvas": state["input"]["canvas"],
-        "available_icons": icon_list,
-        "available_backgrounds": background_list,
-        "available_audio_icons": audio_icon_list,
+        "current_audio": state["input"].get("audio", {}),
+        "available_icons": asset_context["icons"],
+        "available_backgrounds": asset_context["backgrounds"],
+        "available_audio_effects": asset_context["audio_effects"],
         "canvas_rules": {
             "width": 1040,
             "height": 650,
@@ -200,6 +366,7 @@ async def llm_call_2(state: State):
         },
     }
 
+    started_at = time.perf_counter()
     result = await canvas_designer.ainvoke(
         [
             SystemMessage(
@@ -212,6 +379,14 @@ async def llm_call_2(state: State):
                 )
             ),
         ]
+    )
+    logger.info(
+        "LangGraph canvas generation completed | objects=%d | background=%s | "
+        "background_audio=%s | elapsed_ms=%.1f",
+        len(result.objects),
+        result.background_key,
+        result.background_audio_enabled,
+        (time.perf_counter() - started_at) * 1000,
     )
 
     returned_icon_keys = [
@@ -229,30 +404,33 @@ async def llm_call_2(state: State):
         result.background_key
         if (
             result.background_key is not None
-            and result.background_key not in allowed_background_keys
+            and result.background_key not in background_by_key
         )
         else None
     )
 
-    invalid_audio_icon_keys = [
-        obj.asset_key
-        for obj in result.objects
-        if (
-            obj.start_offset_seconds is not None
-            and obj.asset_key not in allowed_audio_icon_keys
-        )
-    ]
-
-    if invalid_icon_keys or invalid_background_key or invalid_audio_icon_keys:
+    if invalid_icon_keys or invalid_background_key:
         raise ValueError(
             "LLM returned invalid asset keys: "
             f"icons={invalid_icon_keys}, "
-            f"background={invalid_background_key}, "
-            f"audio_icons={invalid_audio_icon_keys}"
+            f"background={invalid_background_key}"
         )
 
     canvas = result.model_dump()
     for obj in canvas["objects"]:
+        audio_key = _validated_audio_key(
+            obj["asset_key"],
+            obj["selected_audio_key"],
+            audio_by_asset,
+            default_audio_by_asset,
+        )
+        obj["selected_audio_key"] = audio_key
+        if audio_key is None:
+            obj["start_offset_seconds"] = None
+            obj["effect_keys"] = []
+        effect_keys = list(dict.fromkeys(obj["effect_keys"]))
+        obj["effect_keys"] = effect_keys
+        obj["effects"] = expand_audio_effects(effect_keys)
         half_size = 48 * obj["scale"]
         obj["x"] = round(
             min(max(obj["x"], half_size), 1040 - half_size),
@@ -263,6 +441,26 @@ async def llm_call_2(state: State):
             1,
         )
 
+    background = (
+        background_by_key.get(canvas["background_key"])
+        if canvas["background_key"] is not None
+        else None
+    )
+    if not background or not background["has_audio"]:
+        canvas["background_audio_enabled"] = False
+        canvas["background_start_offset_seconds"] = None
+        canvas["background_effect_keys"] = []
+    elif not canvas["background_audio_enabled"]:
+        canvas["background_start_offset_seconds"] = None
+        canvas["background_effect_keys"] = []
+    background_effect_keys = list(
+        dict.fromkeys(canvas["background_effect_keys"])
+    )
+    canvas["background_effect_keys"] = background_effect_keys
+    canvas["background_effects"] = expand_audio_effects(
+        background_effect_keys
+    )
+
     return {
         "output": canvas
         
@@ -270,6 +468,7 @@ async def llm_call_2(state: State):
 
 
 async def llm_call_router(state: State):
+    started_at = time.perf_counter()
     decision = await router.ainvoke(
         [
             SystemMessage(
@@ -279,6 +478,12 @@ async def llm_call_router(state: State):
                 content=state["input"]["question"]
             ),
         ]
+    )
+
+    logger.info(
+        "LangGraph intent routed | decision=%s | elapsed_ms=%.1f",
+        decision.step,
+        (time.perf_counter() - started_at) * 1000,
     )
 
     return {
@@ -323,22 +528,20 @@ router_workflow = router_builder.compile()
 # display(Image(router_workflow.get_graph().draw_mermaid_png()))
 
 
-async def main():
+async def main(
+    question: str,
+    sentence: str,
+    language: Literal["zh", "ja", "en"],
+    canvas: dict[str, object],
+    audio: dict[str, object],
+):
     state = await router_workflow.ainvoke({
         "input": {
-            "language": "zh",
-            "question": "帮我重新设计这个画面",
-            "sentence": "小鸟轻轻唱着歌，清亮的声音随着微风飘荡。渐渐地，天空染上了朦胧的灰色，一滴、两滴细雨悄然落下。歌声没有停歇，反而与细碎的雨声交织在一起，像是一首只属于这个温柔时刻的歌。",
-            "canvas": {
-                "objects": [    {
-                    "asset_key": "bird",
-                    "x": 430,
-                    "y": 405,
-                    "scale": 1.55,
-                    "rotation": 0
-                    }],
-                "background_key": None,
-            },
+            "language": language,
+            "question": question,
+            "sentence": sentence,
+            "canvas": canvas,
+            "audio": audio,
         }
     })
 
@@ -348,4 +551,41 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    )
+    parser = argparse.ArgumentParser(
+        description="Run the puzzle LangGraph without starting FastAPI.",
+    )
+    parser.add_argument(
+        "--question",
+        default="还需要添加什么？",
+    )
+    parser.add_argument(
+        "--sentence",
+        default="小鸟每天在树上歌唱。",
+    )
+    parser.add_argument(
+        "--language",
+        choices=("zh", "ja", "en"),
+        default="zh",
+    )
+    parser.add_argument(
+        "--canvas-json",
+        default='{"objects": [], "background_key": null}',
+    )
+    parser.add_argument(
+        "--audio-json",
+        default='{"tracks": []}',
+    )
+    arguments = parser.parse_args()
+    asyncio.run(
+        main(
+            question=arguments.question,
+            sentence=arguments.sentence,
+            language=arguments.language,
+            canvas=json.loads(arguments.canvas_json),
+            audio=json.loads(arguments.audio_json),
+        )
+    )

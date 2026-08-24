@@ -1,9 +1,11 @@
-import sqlite3, logging
+import logging
+import sqlite3
+import time
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Header
 from app.db.database import get_db
-from app.schemas.schemas import AILanguage, AIQuestion, AIAnswer, AIQuestionRequest
+from app.schemas.schemas import AIQuestion, AIAnswer, AIQuestionRequest
 # from app.services.llm import llm_api
 from app.services.langgraph.puzzle_agent import router_workflow
 from app.core.security import get_current_user
@@ -37,6 +39,7 @@ async def get_answer(request:AIQuestionRequest,
                             default="zh",
                             alias="X-Language",
                         ), current_user = Depends(get_current_user), db:sqlite3.Connection=Depends(get_db)):
+    started_at = time.perf_counter()
     ai_input = {}
     try:
         sentence = db.execute(
@@ -78,8 +81,10 @@ async def get_answer(request:AIQuestionRequest,
         ai_input["question"] = request.user_request
         ai_input["sentence"] = sentence["sentence"]
 
-        KEEP_FIELDS = {
+        keep_fields = {
+            "instance_id",
             "asset_key",
+            "selected_audio_key",
             "x",
             "y",
             "scale",
@@ -91,37 +96,95 @@ async def get_answer(request:AIQuestionRequest,
                     {
                         k: round(v, 1) if k in {"x", "y", "scale", "rotation"} else v
                         for k, v in obj.items()
-                        if k in KEEP_FIELDS
+                        if k in keep_fields
                     }
-                    for obj in request.canvas["objects"]
+                    for obj in request.canvas.get("objects", [])
+                    if isinstance(obj, dict)
                 ],
                 "background_key": request.canvas.get("background_key"),
             }
-        
+
         ai_input["canvas"] = new_canvas
-    
+        ai_input["audio"] = {
+            "tracks": [
+                {
+                    "id": track.get("id"),
+                    "clips": [
+                        {
+                            key: clip.get(key)
+                            for key in (
+                                "object_instance_id",
+                                "asset_key",
+                                "audio_key",
+                                "start_time",
+                                "volume",
+                                "pan",
+                                "effects",
+                            )
+                            if key in clip
+                        }
+                        for clip in track.get("clips", [])
+                        if isinstance(clip, dict)
+                    ],
+                }
+                for track in request.audio.get("tracks", [])
+                if isinstance(track, dict)
+            ]
+        }
+
+    audio_clip_count = sum(
+        len(track.get("clips", []))
+        for track in ai_input["audio"].get("tracks", [])
+    )
     logger.info(
-        "AI request | question=%s | sentence=%s | canvas=%s",
-        request.user_request,
-        sentence["sentence"],
-        new_canvas,
+        "AI request started | user_id=%s | story_id=%s | step_order=%s | "
+        "language=%s | question_chars=%d | canvas_objects=%d | "
+        "background=%s | audio_clips=%d",
+        current_user["id"],
+        request.story_id,
+        request.step_order,
+        x_language,
+        len(request.user_request),
+        len(new_canvas["objects"]),
+        new_canvas["background_key"],
+        audio_clip_count,
     )
 
-    state = await router_workflow.ainvoke({"input": ai_input})
+    try:
+        state = await router_workflow.ainvoke({"input": ai_input})
+    except Exception as error:
+        logger.exception(
+            "AI workflow failed | user_id=%s | story_id=%s | "
+            "step_order=%s | language=%s | elapsed_ms=%.1f",
+            current_user["id"],
+            request.story_id,
+            request.step_order,
+            x_language,
+            (time.perf_counter() - started_at) * 1000,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="AI service is temporarily unavailable",
+        ) from error
+
     if state["decision"] == "suggestion":
         logger.info(
-            "AI suggestion | question=%s | sentence=%s | output=%s",
-            request.user_request,
-            sentence["sentence"],
-            state["output"],
+            "AI suggestion ready | user_id=%s | icons=%d | "
+            "audio_suggestions=%d | background=%s",
+            current_user["id"],
+            len(state["output"].get("icon_keys", [])),
+            len(state["output"].get("audio_suggestions", [])),
+            state["output"].get("background_key"),
         )
 
     elif state["decision"] == "generate":
         logger.info(
-            "AI generate | question=%s | sentence=%s | output=%s",
-            request.user_request,
-            sentence["sentence"],
-            state["output"],
+            "AI canvas ready | user_id=%s | objects=%d | background=%s | "
+            "background_audio=%s",
+            current_user["id"],
+            len(state["output"].get("objects", [])),
+            state["output"].get("background_key"),
+            state["output"].get("background_audio_enabled"),
         )
         objects = state["output"]["objects"]
         asset_keys = list(dict.fromkeys(
@@ -134,7 +197,7 @@ async def get_answer(request:AIQuestionRequest,
             try:
                 rows = db.execute(
                     f"""
-                    SELECT asset_key, image_url, audio_url
+                    SELECT asset_key, image_url
                     FROM assets
                     WHERE asset_key IN ({placeholders})
                     """,
@@ -170,8 +233,65 @@ async def get_answer(request:AIQuestionRequest,
             for obj in objects:
                 asset = assets_by_key[obj["asset_key"]]
                 obj["image_url"] = asset["image_url"]
-                obj["audio_url"] = asset["audio_url"]
                 obj["flip_x"] = False
+
+            selected_audio_keys = list(dict.fromkeys(
+                obj["selected_audio_key"]
+                for obj in objects
+                if obj.get("selected_audio_key")
+            ))
+            audio_by_key = {}
+            if selected_audio_keys:
+                audio_placeholders = ", ".join(
+                    "?" for _ in selected_audio_keys
+                )
+                try:
+                    audio_rows = db.execute(
+                        f"""
+                        SELECT
+                            a.asset_key,
+                            aao.audio_key,
+                            aao.audio_url
+                        FROM asset_audio_options AS aao
+                        JOIN assets AS a
+                            ON a.id = aao.asset_id
+                        WHERE aao.audio_key IN ({audio_placeholders})
+                        """,
+                        selected_audio_keys,
+                    ).fetchall()
+                except sqlite3.DatabaseError as error:
+                    logger.exception(
+                        "Failed to resolve generated audio options | "
+                        "audio_keys=%s",
+                        selected_audio_keys,
+                    )
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Failed to get generated audio information",
+                    ) from error
+                audio_by_key = {
+                    row["audio_key"]: row
+                    for row in audio_rows
+                }
+
+            for obj in objects:
+                selected_audio_key = obj.get("selected_audio_key")
+                if selected_audio_key is None:
+                    obj["audio_url"] = None
+                    continue
+                audio = audio_by_key.get(selected_audio_key)
+                if audio is None or audio["asset_key"] != obj["asset_key"]:
+                    logger.error(
+                        "Generated audio option does not belong to asset | "
+                        "asset_key=%s | audio_key=%s",
+                        obj["asset_key"],
+                        selected_audio_key,
+                    )
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Generated audio data is invalid",
+                    )
+                obj["audio_url"] = audio["audio_url"]
 
         background_key = state["output"]["background_key"]
         if background_key:
@@ -202,9 +322,31 @@ async def get_answer(request:AIQuestionRequest,
                 )
 
             state["output"]["background"] = {
+                "asset_key": background_key,
                 "image_url": row["image_url"],
                 "audio_url": row["audio_url"],
-            }            
+                "audio_enabled": bool(
+                    state["output"].get("background_audio_enabled")
+                    and row["audio_url"]
+                ),
+                "start_offset_seconds": state["output"].get(
+                    "background_start_offset_seconds"
+                ),
+                "effects": state["output"].get(
+                    "background_effects",
+                    {},
+                ),
+            }
+
+    logger.info(
+        "AI request completed | user_id=%s | story_id=%s | step_order=%s | "
+        "mode=%s | elapsed_ms=%.1f",
+        current_user["id"],
+        request.story_id,
+        request.step_order,
+        state["decision"],
+        (time.perf_counter() - started_at) * 1000,
+    )
 
     return {
         "mode": state["decision"],  # 建议还是生成

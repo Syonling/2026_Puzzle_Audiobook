@@ -1,28 +1,29 @@
-import { request } from "./api.js?v=20260819-10";
-import { getLanguage, t } from "./i18n.js?v=20260819-10";
+import { request } from "./api.js?v=20260824-1";
+import { getLanguage, t } from "./i18n.js?v=20260824-1";
 import {
     getActiveCanvasContext,
     getActiveCanvasSnapshot,
     replaceActiveCanvasFromAI,
     restoreActiveCanvasSnapshot,
     setCanvasAIPreviewLocked,
-} from "./canvas.js?v=20260819-10";
+} from "./canvas.js?v=20260824-1";
 import {
     getActiveAudioSnapshot,
     restoreActiveAudioSnapshot,
     setAudioAIPreviewLocked,
-} from "./audio.js?v=20260819-10";
+} from "./audio.js?v=20260824-1";
 import {
     acceptAIPreview,
     beginAIPreview,
     rejectAIPreview,
-} from "./projects.js?v=20260819-10";
+} from "./projects.js?v=20260824-1";
 
 const form = document.querySelector("[data-ai-question-form]");
 const input = document.querySelector("[data-ai-question-input]");
 const submit = document.querySelector("[data-ai-question-submit]");
 const presetList = document.querySelector("[data-ai-preset-list]");
 const errorMessage = document.querySelector("[data-ai-question-error]");
+const BACKGROUND_AUDIO_INSTANCE_ID = "canvas-background";
 const answerToast = document.querySelector("[data-ai-answer-toast]");
 const answerText = document.querySelector("[data-ai-answer-text]");
 const answerTitle = document.querySelector("[data-ai-answer-title]");
@@ -35,6 +36,26 @@ let isSubmitting = false;
 let presetRequestRevision = 0;
 let answerRequestRevision = 0;
 let aiPreviewTransaction = null;
+
+function createAudioForAI(audio) {
+    return {
+        ...audio,
+        tracks: Array.isArray(audio?.tracks)
+            ? audio.tracks.map((track) => ({
+                ...track,
+                clips: Array.isArray(track?.clips)
+                    ? track.clips.map((clip) => {
+                        if (clip?.object_instance_id !== BACKGROUND_AUDIO_INSTANCE_ID) {
+                            return { ...clip };
+                        }
+                        const { volume: _backgroundVolume, ...clipWithoutVolume } = clip;
+                        return clipWithoutVolume;
+                    })
+                    : [],
+            }))
+            : [],
+    };
+}
 
 function publishSuggestedAssets(assetKeys = []) {
     window.dispatchEvent(new CustomEvent("puzzle-audiobook:asset-suggestions", {
@@ -132,6 +153,23 @@ function formatReasoning(reasoning) {
         .trim();
 }
 
+function formatAudioSuggestions(suggestions) {
+    if (!Array.isArray(suggestions)) return "";
+    return suggestions
+        .filter((item) => item && typeof item.selected_audio_key === "string")
+        .map((item) => {
+            const name = item.audio_name || item.selected_audio_key;
+            const offset = Number.isFinite(Number(item.start_offset_seconds))
+                ? ` · ${Math.max(0, Number(item.start_offset_seconds))}s`
+                : "";
+            const effects = Array.isArray(item.effect_keys) && item.effect_keys.length
+                ? ` · ${item.effect_keys.join(", ")}`
+                : "";
+            return `🔊 ${item.asset_key}: ${name}${offset}${effects}`;
+        })
+        .join("\n");
+}
+
 function cancelPendingAnswer() {
     answerRequestRevision += 1;
     isSubmitting = false;
@@ -197,11 +235,13 @@ form?.addEventListener("submit", async (event) => {
 
     const canvasContext = getActiveCanvasContext();
     const canvas = getActiveCanvasSnapshot();
+    const audio = getActiveAudioSnapshot();
     if (
         !canvasContext
         || !Number.isInteger(canvasContext.storyId)
         || !Number.isInteger(canvasContext.stepOrder)
         || !canvas
+        || !audio
     ) {
         showError(t("ai.stepRequired"));
         return;
@@ -224,6 +264,7 @@ form?.addEventListener("submit", async (event) => {
                 story_id: canvasContext.storyId,
                 step_order: canvasContext.stepOrder,
                 canvas,
+                audio: createAudioForAI(audio),
             }),
         });
         const latestContext = getActiveCanvasContext();
@@ -255,11 +296,17 @@ form?.addEventListener("submit", async (event) => {
             const reasoning = typeof result.output?.reasoning === "string"
                 ? result.output.reasoning.trim()
                 : "";
-            showAnswer(reasoning ? formatReasoning(reasoning) : (
+            const audioSuggestions = formatAudioSuggestions(
+                result.output?.audio_suggestions,
+            );
+            const explanation = reasoning ? formatReasoning(reasoning) : (
                 suggestedKeys.length > 0
                     ? t("ai.suggestions", { count: suggestedKeys.length })
                     : t("ai.noSuggestions")
-            ));
+            );
+            showAnswer(
+                [explanation, audioSuggestions].filter(Boolean).join("\n\n"),
+            );
         } else if (result.mode === "generate") {
             const responseToken =
                 `${languageAtSubmit}:${canvasContext.storyId}:${stepIdAtSubmit}:${revision}`;
