@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="AI 辅助空间拼贴式有声绘本创作工作台" data-i18n-content="app.description">
+    <title>有声绘本工作台</title>
+    <link rel="stylesheet" href="/static/css/app.css?v=20260819-9">
+</head>
+<body data-i18n-title="app.title">
+    <div class="app-shell">
+        <header class="app-header">
+            <a class="brand" href="/" aria-label="返回有声绘本工作台首页" data-i18n-aria-label="app.home">
+                <span class="brand-mark" aria-hidden="true"></span>
+                <span data-i18n="app.brand">有声绘本</span>
+            </a>
+
+            <p class="project-name">未命名作品</p>
+
+            <div class="header-actions">
+                <div class="language-switcher" role="group" aria-label="界面语言" data-i18n-aria-label="language.label">
+                    <button type="button" data-language="ja" aria-label="日语" data-i18n-aria-label="language.ja">日</button>
+                    <button type="button" data-language="zh" aria-label="中文" data-i18n-aria-label="language.zh">中</button>
+                    <button type="button" data-language="en" aria-label="英语" data-i18n-aria-label="language.en">EN</button>
+                </div>
+                <div class="account" data-account>
+                <button
+                    class="account-button"
+                    type="button"
+                    aria-label="打开用户菜单"
+                    data-i18n-aria-label="account.open"
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                    data-account-button
+                    disabled
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 12a4.25 4.25 0 1 0 0-8.5 4.25 4.25 0 0 0 0 8.5Zm0 2c-4.2 0-7.5 2.2-7.5 5v.5h15V19c0-2.8-3.3-5-7.5-5Z"/>
+                    </svg>
+                    <span class="account-initial" data-account-initial hidden></span>
+                </button>
+                <span class="account-name" data-account-label hidden></span>
+
+                <div class="account-menu" data-account-menu hidden>
+                    <div class="account-summary">
+                        <span class="account-menu-label" data-i18n="account.current">当前用户</span>
+                        <strong data-account-name></strong>
+                    </div>
+                    <button class="logout-button" type="button" data-logout data-i18n="account.logout">退出登录</button>
+                </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="workspace" aria-label="有声绘本创作工作台" data-i18n-aria-label="app.workspace">
+            <aside class="workspace-panel story-panel" aria-labelledby="story-panel-title">
+                <div class="panel-heading">
+                    <p class="eyebrow" data-i18n="section.story">Story</p>
+                    <h1 id="story-panel-title" data-i18n="story.heading">故事与引导</h1>
+                </div>
+
+                <div class="story-browser">
+                    <button
+                        class="current-book"
+                        type="button"
+                        data-current-book
+                        aria-haspopup="dialog"
+                        disabled
+                    >
+                        <span class="current-book-cover" data-current-book-cover>
+                            <span class="book-cover-fallback" aria-hidden="true" data-i18n="story.fallback">故事</span>
+                        </span>
+                        <span class="current-book-info">
+                            <span class="current-book-label" data-i18n="story.current">当前故事</span>
+                            <strong data-current-story-title data-i18n="story.loading">正在加载故事…</strong>
+                            <span data-current-story-description data-i18n="story.wait">请稍候</span>
+                        </span>
+                        <span class="book-open-hint" aria-hidden="true">›</span>
+                    </button>
+
+                    <section class="story-step-card" aria-live="polite">
+                        <p class="story-step-label" data-step-label data-i18n="story.steps">故事步骤</p>
+                        <p class="story-step-text" data-step-text data-i18n="story.stepLoading">正在加载故事内容…</p>
+                        <div class="story-step-buttons" data-step-buttons aria-label="切换故事步骤" data-i18n-aria-label="story.switchSteps"></div>
+                    </section>
+
+                    <section class="ai-question-panel" aria-labelledby="ai-question-title">
+                        <div class="panel-heading ai-question-heading">
+                            <p class="eyebrow">AI</p>
+                            <h2 id="ai-question-title" data-i18n="ai.heading">AI 创作助手</h2>
+                        </div>
+                        <form class="ai-question-form" data-ai-question-form>
+                            <label class="ai-question-field">
+                                <span class="ai-question-icon" aria-hidden="true">🤔</span>
+                                <input
+                                    type="text"
+                                    name="user_request"
+                                    maxlength="1000"
+                                    placeholder="问问 AI，这一页可以怎么画？"
+                                    data-i18n-placeholder="ai.placeholder"
+                                    autocomplete="off"
+                                    data-ai-question-input
+                                    required
+                                >
+                            </label>
+                            <button class="ai-question-submit" type="submit" data-ai-question-submit data-i18n="ai.submit">
+                                提交
+                            </button>
+                        </form>
+                        <div class="ai-preset-list" data-ai-preset-list aria-label="预设 AI 问题" data-i18n-aria-label="ai.presets">
+                            <span class="ai-preset-status" data-i18n="ai.presetsLoading">正在加载推荐问题…</span>
+                        </div>
+                        <p class="ai-question-error" role="alert" data-ai-question-error hidden></p>
+                    </section>
+
+                    <p class="story-error" role="alert" data-story-error hidden></p>
+                </div>
+            </aside>
+
+            <section class="canvas-panel" aria-labelledby="canvas-panel-title">
+                <div class="panel-heading canvas-heading">
+                    <div>
+                        <p class="eyebrow" data-i18n="section.canvas">Canvas</p>
+                        <h2 id="canvas-panel-title" data-i18n="canvas.heading">绘本画布</h2>
+                    </div>
+                    <div class="canvas-save-area">
+                        <span class="save-status" data-save-status aria-live="polite" data-i18n="canvas.unsaved">尚未保存</span>
+                        <button class="canvas-save-button" type="button" data-save-project data-i18n="canvas.save" disabled>
+                            保存
+                        </button>
+                        <div class="canvas-history-controls" role="group" data-i18n-aria-label="history.controls">
+                            <button type="button" data-history-undo data-i18n-title="history.undo" data-i18n-aria-label="history.undo" disabled>
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M9.25 7.25 5.5 11l3.75 3.75"/>
+                                    <path d="M6 11h7.1a5.4 5.4 0 0 1 5.4 5.4v.35"/>
+                                </svg>
+                            </button>
+                            <button type="button" data-history-redo data-i18n-title="history.redo" data-i18n-aria-label="history.redo" disabled>
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="m14.75 7.25 3.75 3.75-3.75 3.75"/>
+                                    <path d="M18 11h-7.1a5.4 5.4 0 0 0-5.4 5.4v.35"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="canvas-stage">
+                    <div class="canvas-paper" data-canvas-paper aria-label="当前故事步骤的绘本画布" data-i18n-aria-label="canvas.current">
+                        <span class="canvas-page-indicator" data-canvas-page data-i18n="canvas.noStep">尚未选择故事步骤</span>
+                        <button
+                            class="canvas-background-remove"
+                            type="button"
+                            data-canvas-background-remove
+                            data-i18n="canvas.removeBackground"
+                            data-i18n-aria-label="canvas.removeBackground"
+                            hidden
+                        >删除背景</button>
+                        <div class="canvas-empty-state" data-canvas-empty>
+                            <p data-canvas-title data-i18n="canvas.area">画布区域</p>
+                            <span data-canvas-description data-i18n="canvas.chooseStep">选择故事步骤后，将为它建立独立画布</span>
+                        </div>
+                        <div class="canvas-object-layer" data-canvas-object-layer></div>
+                    </div>
+                </div>
+
+                <section class="audio-track-placeholder" aria-label="音频时间轴" data-audio-timeline data-i18n-aria-label="audio.timeline">
+                    <div class="audio-track-heading">
+                        <div class="audio-track-title">
+                            <strong data-i18n="audio.tracks">音频轨道</strong>
+                            <span data-audio-status data-i18n="audio.currentStep">当前步骤 · 0:00</span>
+                        </div>
+                        <div class="audio-effect-buttons" data-audio-effect-controls aria-label="素材音效处理" data-i18n-aria-label="audio.effectsControls">
+                            <span class="sr-only" data-audio-effect-selection data-i18n="audio.selectClip">选择素材音频后添加效果</span>
+                            <button type="button" data-audio-effect="fade_in" data-i18n="audio.fadeIn" disabled>淡入</button>
+                            <button type="button" data-audio-effect="fade_out" data-i18n="audio.fadeOut" disabled>淡出</button>
+                            <button type="button" data-audio-effect="reverb" data-i18n="audio.reverb" disabled>空间</button>
+                            <button type="button" data-audio-effect="echo" data-i18n="audio.echo" disabled>回声</button>
+                            <span class="audio-effect-divider" aria-hidden="true"></span>
+                            <button type="button" class="is-secondary" data-audio-effect-undo data-i18n="audio.effectUndo" disabled>撤销</button>
+                            <button type="button" class="is-secondary" data-audio-effect-reset data-i18n="audio.effectReset" disabled>还原</button>
+                        </div>
+                        <div class="audio-transport" aria-label="音频播放控制" data-i18n-aria-label="audio.controls">
+                            <button type="button" data-audio-play aria-label="播放" data-i18n-aria-label="audio.play">▶</button>
+                            <button type="button" data-audio-pause aria-label="暂停" data-i18n-aria-label="audio.pause" disabled>Ⅱ</button>
+                            <button type="button" data-audio-stop aria-label="停止" data-i18n-aria-label="audio.stop" disabled>■</button>
+                        </div>
+                    </div>
+                    <div class="audio-track-editor" data-audio-editor>
+                        <div class="audio-time-ruler" data-audio-ruler aria-hidden="true"></div>
+                        <div class="audio-track-row is-locked" data-audio-track="narration" data-i18n-title="audio.narrationFixed">
+                            <span class="audio-track-label" data-i18n="audio.narration">旁白</span>
+                            <span class="audio-track-lane" data-audio-lane="narration" aria-readonly="true">
+                                <span class="audio-clip-layer" data-audio-clips="narration"></span>
+                            </span>
+                        </div>
+                        <div class="audio-track-row" data-audio-track="free">
+                            <span class="audio-track-label" data-i18n="audio.background">背景音频</span>
+                            <span class="audio-track-lane" data-audio-lane="free">
+                                <span class="audio-clip-layer" data-audio-clips="free"></span>
+                            </span>
+                        </div>
+                        <div class="audio-track-row" data-audio-track="effects">
+                            <span class="audio-track-label" data-i18n="audio.effects">素材音效</span>
+                            <span class="audio-track-lane" data-audio-lane="effects">
+                                <span class="audio-clip-layer" data-audio-clips="effects"></span>
+                            </span>
+                        </div>
+                        <button class="audio-playhead" type="button" data-audio-playhead aria-label="拖动播放位置" data-i18n-aria-label="audio.seek">
+                            <span></span>
+                        </button>
+                    </div>
+                </section>
+            </section>
+
+            <aside class="workspace-panel library-panel" aria-labelledby="library-panel-title">
+                <div class="panel-heading">
+                    <p class="eyebrow" data-i18n="section.library">Library</p>
+                    <h2 id="library-panel-title" data-i18n="library.heading">素材库</h2>
+                </div>
+                <section class="asset-library">
+                    <label class="asset-search">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="m20.3 19-4.5-4.5a7 7 0 1 0-1.4 1.4l4.5 4.5a1 1 0 0 0 1.4-1.4ZM5 10.5a5.5 5.5 0 1 1 11 0 5.5 5.5 0 0 1-11 0Z"/>
+                        </svg>
+                        <span class="sr-only" data-i18n="library.search">搜索素材</span>
+                        <input
+                            type="search"
+                            placeholder="搜索素材"
+                            data-i18n-placeholder="library.search"
+                            autocomplete="off"
+                            data-asset-search
+                        >
+                    </label>
+                    <nav class="asset-categories" aria-label="素材分类" data-asset-categories data-i18n-aria-label="library.categories">
+                        <button type="button" class="is-active" data-asset-category="" data-i18n="library.all">全部</button>
+                    </nav>
+                    <section class="asset-suggestion-panel" data-asset-suggestion-panel hidden>
+                        <div class="asset-suggestion-heading">
+                            <div>
+                                <span class="asset-suggestion-badge">AI</span>
+                                <strong data-i18n="library.recommended">推荐素材</strong>
+                            </div>
+                            <button type="button" aria-label="关闭 AI 推荐" data-asset-suggestion-close data-i18n-aria-label="library.closeRecommended">×</button>
+                        </div>
+                        <div class="asset-suggestion-list" data-asset-suggestion-list></div>
+                    </section>
+                    <div class="asset-grid" data-asset-grid aria-live="polite">
+                        <p class="asset-library-status" data-i18n="library.loading">正在加载素材…</p>
+                    </div>
+                    <nav class="asset-pagination" data-asset-pagination aria-label="素材分页" data-i18n-aria-label="library.pagination" hidden></nav>
+                </section>
+            </aside>
+        </main>
+    </div>
+
+    <aside class="ai-answer-toast" role="status" aria-live="polite" data-ai-answer-toast hidden>
+        <div class="ai-answer-mark" aria-hidden="true">AI</div>
+        <div class="ai-answer-content">
+            <span data-ai-answer-title data-i18n="ai.answer">AI 的回答</span>
+            <p data-ai-answer-text></p>
+            <button class="ai-answer-retry" type="button" data-ai-answer-retry data-i18n="ai.retry" hidden>重试</button>
+            <div class="ai-preview-actions" data-ai-preview-actions hidden>
+                <button type="button" class="ai-preview-reject" data-ai-preview-reject data-i18n="ai.rejectDesign">拒绝设计</button>
+                <button type="button" class="ai-preview-accept" data-ai-preview-accept data-i18n="ai.acceptDesign">接受设计</button>
+            </div>
+        </div>
+        <button type="button" aria-label="关闭 AI 回答" data-ai-answer-close data-i18n-aria-label="ai.closeAnswer">×</button>
+    </aside>
+
+    <dialog class="auth-dialog" data-auth-dialog aria-labelledby="auth-title">
+        <button class="dialog-close" type="button" aria-label="关闭登录窗口" data-auth-close data-i18n-aria-label="auth.close">×</button>
+        <div class="auth-brand">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <p class="eyebrow">Puzzle Audiobook</p>
+        </div>
+        <h2 id="auth-title" data-auth-title data-i18n="auth.welcome">欢迎回来</h2>
+        <p class="auth-intro" data-auth-intro data-i18n="auth.loginIntro">登录后继续创作你的有声绘本。</p>
+
+        <div class="auth-tabs" role="tablist" aria-label="账户操作" data-i18n-aria-label="auth.actions">
+            <button type="button" role="tab" aria-selected="true" data-auth-mode="login" data-i18n="auth.login">登录</button>
+            <button type="button" role="tab" aria-selected="false" data-auth-mode="register" data-i18n="auth.register">注册</button>
+        </div>
+
+        <form class="auth-form" data-auth-form novalidate>
+            <label>
+                <span data-i18n="auth.username">用户名</span>
+                <input name="username" type="text" autocomplete="username" maxlength="100" required>
+            </label>
+            <label>
+                <span data-i18n="auth.password">密码</span>
+                <input name="password" type="password" autocomplete="current-password" required>
+            </label>
+            <p class="form-error" role="alert" data-auth-error hidden></p>
+            <button class="auth-submit" type="submit" data-auth-submit data-i18n="auth.login">登录</button>
+        </form>
+    </dialog>
+
+    <dialog class="bookshelf-dialog" data-bookshelf-dialog aria-labelledby="bookshelf-title">
+        <div class="bookshelf-heading">
+            <div>
+                <p class="eyebrow">Bookshelf</p>
+                <h2 id="bookshelf-title" data-i18n="bookshelf.title">选择一个故事</h2>
+            </div>
+            <button class="dialog-close bookshelf-close" type="button" aria-label="关闭书架" data-bookshelf-close data-i18n-aria-label="bookshelf.close">×</button>
+        </div>
+        <div class="bookshelf-grid" data-bookshelf-grid></div>
+        <p class="story-error bookshelf-error" role="alert" data-bookshelf-error hidden></p>
+    </dialog>
+
+    <dialog class="unsaved-dialog" data-unsaved-dialog aria-labelledby="unsaved-title">
+        <div class="unsaved-dialog-icon" aria-hidden="true">●</div>
+        <h2 id="unsaved-title" data-i18n="unsaved.title">保存当前画布？</h2>
+        <p data-i18n="unsaved.message">当前画布有未保存的更改。切换前是否保存？</p>
+        <div class="unsaved-dialog-actions">
+            <button type="button" class="unsaved-cancel" data-unsaved-cancel data-i18n="unsaved.cancel">取消</button>
+            <button type="button" class="unsaved-discard" data-unsaved-discard data-i18n="unsaved.discard">不保存</button>
+            <button type="button" class="unsaved-save" data-unsaved-save data-i18n="unsaved.save">保存并切换</button>
+        </div>
+    </dialog>
+
+    <script type="module" src="/static/js/i18n.js?v=20260819-10"></script>
+    <script type="module" src="/static/js/stories.js?v=20260819-10"></script>
+    <script type="module" src="/static/js/projects.js?v=20260819-10"></script>
+    <script type="module" src="/static/js/auth.js?v=20260819-10"></script>
+    <script type="module" src="/static/js/ai_questions.js?v=20260819-10"></script>
+    <script type="module" src="/static/js/assets.js?v=20260819-10"></script>
+    <script type="module" src="/static/js/audio.js?v=20260819-10"></script>
+</body>
+</html>

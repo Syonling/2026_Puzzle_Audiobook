@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="登录或注册有声绘本账户" data-i18n-content="auth.description">
+    <title>账户 · 有声绘本</title>
+    <link rel="stylesheet" href="/static/css/app.css?v=20260819-9">
+</head>
+<body class="auth-page" data-i18n-title="auth.pageTitle">
+    <main class="auth-card">
+        <a class="auth-back" href="/" data-i18n="auth.back">← 返回工作台</a>
+        <div class="auth-brand">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <p class="eyebrow">Puzzle Audiobook</p>
+        </div>
+        <h1 data-auth-title data-i18n="auth.welcome">欢迎回来</h1>
+        <p class="auth-intro" data-auth-intro data-i18n="auth.loginIntro">登录后继续创作你的有声绘本。</p>
+
+        <div class="auth-tabs" role="tablist" aria-label="账户操作" data-i18n-aria-label="auth.actions">
+            <button type="button" role="tab" aria-selected="true" data-auth-mode="login" data-i18n="auth.login">登录</button>
+            <button type="button" role="tab" aria-selected="false" data-auth-mode="register" data-i18n="auth.register">注册</button>
+        </div>
+
+        <form class="auth-form" data-auth-form novalidate>
+            <label>
+                <span data-i18n="auth.username">用户名</span>
+                <input name="username" type="text" autocomplete="username" maxlength="100" required>
+            </label>
+            <label>
+                <span data-i18n="auth.password">密码</span>
+                <input name="password" type="password" autocomplete="current-password" required>
+            </label>
+            <p class="form-error" role="alert" data-auth-error hidden></p>
+            <button class="auth-submit" type="submit" data-auth-submit data-i18n="auth.login">登录</button>
+        </form>
+    </main>
+
+    <script type="module" src="/static/js/i18n.js?v=20260819-10"></script>
+    <script type="module" src="/static/js/auth.js?v=20260819-10"></script>
+</body>
+</html>
