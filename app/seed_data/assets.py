@@ -1,6 +1,6 @@
 """资产数据 —— 由 copy.py 自动生成,请勿手改(重跑 copy.py 会覆盖)。
 
-基于 static/images 下的 199 个 png 生成;
+基于 static/images 下的 223 个 png 生成;
 分类与翻译来自 labels.py。
 """
 
@@ -1961,6 +1961,29 @@ ASSETS = [
         ]
     },
     {
+        "asset_key": "playing_children",
+        "category": "characters",
+        "image_url": "/static/images/playing_children.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "遊んで走る子供たち",
+                "category_translation": "人物"
+            },
+            {
+                "language": "zh",
+                "name": "玩耍跑着的小孩",
+                "category_translation": "人物"
+            },
+            {
+                "language": "en",
+                "name": "Playing Children",
+                "category_translation": "characters"
+            }
+        ]
+    },
+    {
         "asset_key": "rain",
         "category": "weather",
         "image_url": "/static/images/rain.png",
@@ -2145,6 +2168,52 @@ ASSETS = [
         ]
     },
     {
+        "asset_key": "storm_clouds",
+        "category": "weather",
+        "image_url": "/static/images/storm_clouds.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "雨雲",
+                "category_translation": "天気"
+            },
+            {
+                "language": "zh",
+                "name": "连片乌云",
+                "category_translation": "天气"
+            },
+            {
+                "language": "en",
+                "name": "Storm Clouds",
+                "category_translation": "weather"
+            }
+        ]
+    },
+    {
+        "asset_key": "scattered_raindrops",
+        "category": "weather",
+        "image_url": "/static/images/scattered_raindrops.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "散らばる雨粒",
+                "category_translation": "天気"
+            },
+            {
+                "language": "zh",
+                "name": "零散雨滴",
+                "category_translation": "天气"
+            },
+            {
+                "language": "en",
+                "name": "Scattered Raindrops",
+                "category_translation": "weather"
+            }
+        ]
+    },
+    {
         "asset_key": "stream",
         "category": "scenery",
         "image_url": "/static/images/stream.png",
@@ -2324,6 +2393,29 @@ ASSETS = [
             {
                 "language": "en",
                 "name": "Grassland",
+                "category_translation": "scenery"
+            }
+        ]
+    },
+    {
+        "asset_key": "wave_splashes",
+        "category": "scenery",
+        "image_url": "/static/images/wave_splashes.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "波しぶき",
+                "category_translation": "風景"
+            },
+            {
+                "language": "zh",
+                "name": "浪花",
+                "category_translation": "风景"
+            },
+            {
+                "language": "en",
+                "name": "Wave Splashes",
                 "category_translation": "scenery"
             }
         ]
@@ -2577,6 +2669,98 @@ ASSETS = [
             {
                 "language": "en",
                 "name": "Half Open Wooden Door",
+                "category_translation": "buildings"
+            }
+        ]
+    },
+    {
+        "asset_key": "intact_window",
+        "category": "buildings",
+        "image_url": "/static/images/intact_window.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "割れていない窓",
+                "category_translation": "建物"
+            },
+            {
+                "language": "zh",
+                "name": "完整的窗",
+                "category_translation": "建筑"
+            },
+            {
+                "language": "en",
+                "name": "Intact Window",
+                "category_translation": "buildings"
+            }
+        ]
+    },
+    {
+        "asset_key": "broken_window",
+        "category": "buildings",
+        "image_url": "/static/images/broken_window.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "割れた窓",
+                "category_translation": "建物"
+            },
+            {
+                "language": "zh",
+                "name": "半破碎的窗",
+                "category_translation": "建筑"
+            },
+            {
+                "language": "en",
+                "name": "Broken Window",
+                "category_translation": "buildings"
+            }
+        ]
+    },
+    {
+        "asset_key": "spiral_staircase",
+        "category": "buildings",
+        "image_url": "/static/images/spiral_staircase.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "らせん階段",
+                "category_translation": "建物"
+            },
+            {
+                "language": "zh",
+                "name": "旋转楼梯",
+                "category_translation": "建筑"
+            },
+            {
+                "language": "en",
+                "name": "Spiral Staircase",
+                "category_translation": "buildings"
+            }
+        ]
+    },
+    {
+        "asset_key": "market_stall",
+        "category": "buildings",
+        "image_url": "/static/images/market_stall.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "屋台",
+                "category_translation": "建物"
+            },
+            {
+                "language": "zh",
+                "name": "摊位",
+                "category_translation": "建筑"
+            },
+            {
+                "language": "en",
+                "name": "Market Stall",
                 "category_translation": "buildings"
             }
         ]
@@ -3732,6 +3916,328 @@ ASSETS = [
         ]
     },
     {
+        "asset_key": "table",
+        "category": "daily_life",
+        "image_url": "/static/images/table.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "テーブル",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "桌子",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Table",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "chair",
+        "category": "daily_life",
+        "image_url": "/static/images/chair.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "椅子",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "椅子",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Chair",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "stool",
+        "category": "daily_life",
+        "image_url": "/static/images/stool.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "スツール",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "凳子",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Stool",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "bench",
+        "category": "daily_life",
+        "image_url": "/static/images/bench.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "ベンチ",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "长凳",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Bench",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "sofa",
+        "category": "daily_life",
+        "image_url": "/static/images/sofa.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "ソファー",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "沙发",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Sofa",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "bed",
+        "category": "daily_life",
+        "image_url": "/static/images/bed.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "ベッド",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "床",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Bed",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "wardrobe",
+        "category": "daily_life",
+        "image_url": "/static/images/wardrobe.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "洋服だんす",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "衣柜",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Wardrobe",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "bookshelf",
+        "category": "daily_life",
+        "image_url": "/static/images/bookshelf.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "本棚",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "书架",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Bookshelf",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "lamp",
+        "category": "daily_life",
+        "image_url": "/static/images/lamp.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "電気スタンド",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "台灯",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Lamp",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "kraft_paper_parcel",
+        "category": "daily_life",
+        "image_url": "/static/images/kraft_paper_parcel.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "クラフト紙の包み",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "牛皮纸包裹",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Kraft Paper Parcel",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "spider_web",
+        "category": "daily_life",
+        "image_url": "/static/images/spider_web.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "クモの巣",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "蜘蛛网",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Spider Web",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "basket",
+        "category": "daily_life",
+        "image_url": "/static/images/basket.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "かご",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "篮筐",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Basket",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "balloon",
+        "category": "daily_life",
+        "image_url": "/static/images/balloon.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "風船",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "气球",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Balloon",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "fishing_gear_pile",
+        "category": "daily_life",
+        "image_url": "/static/images/fishing_gear_pile.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "釣り道具の山",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "一堆渔具",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Fishing Gear Pile",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
         "asset_key": "sweat_drop",
         "category": "effects",
         "image_url": "/static/images/sweat_drop.png",
@@ -4003,6 +4509,29 @@ ASSETS = [
             {
                 "language": "en",
                 "name": "Animal Footprints",
+                "category_translation": "effects"
+            }
+        ]
+    },
+    {
+        "asset_key": "impact_burst",
+        "category": "effects",
+        "image_url": "/static/images/impact_burst.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "インパクトエフェクト",
+                "category_translation": "エフェクト"
+            },
+            {
+                "language": "zh",
+                "name": "敲击特效",
+                "category_translation": "特效"
+            },
+            {
+                "language": "en",
+                "name": "Impact Burst",
                 "category_translation": "effects"
             }
         ]
@@ -4578,6 +5107,29 @@ ASSETS = [
             {
                 "language": "en",
                 "name": "Orchard Background",
+                "category_translation": "background"
+            }
+        ]
+    },
+    {
+        "asset_key": "lighthouse_interior_background",
+        "category": "background",
+        "image_url": "/static/images/lighthouse_interior_background.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "灯台の中の背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "zh",
+                "name": "灯塔内部背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "en",
+                "name": "Lighthouse Interior Background",
                 "category_translation": "background"
             }
         ]

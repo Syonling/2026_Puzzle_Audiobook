@@ -1,5 +1,5 @@
-import { request } from "./api.js?v=20260824-1";
-import { t } from "./i18n.js?v=20260824-1";
+import { request } from "./api.js?v=20260825-1";
+import { t } from "./i18n.js?v=20260825-1";
 
 const searchInput = document.querySelector("[data-asset-search]");
 const categoryList = document.querySelector("[data-asset-categories]");

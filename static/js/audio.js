@@ -1,4 +1,4 @@
-import { t } from "./i18n.js?v=20260824-1";
+import { t } from "./i18n.js?v=20260825-1";
 
 const DEFAULT_DURATION = 15;
 // 保留既有 ID 以兼容已保存项目；数组顺序就是界面与后端序列化顺序。
@@ -27,11 +27,15 @@ const effectResetButton = document.querySelector("[data-audio-effect-reset]");
 const backgroundVolumeControl = document.querySelector("[data-background-volume-control]");
 const backgroundVolumeInput = document.querySelector("[data-background-volume]");
 const backgroundVolumeOutput = document.querySelector("[data-background-volume-output]");
+const trackMuteButtons = [...document.querySelectorAll("[data-track-mute]")];
 const objectAudioPicker = document.querySelector("[data-object-audio-picker]");
 const objectAudioCurrent = document.querySelector("[data-object-audio-current]");
 const objectAudioName = document.querySelector("[data-object-audio-name]");
 const objectAudioOptions = document.querySelector("[data-object-audio-options]");
 const objectAudioError = document.querySelector("[data-object-audio-error]");
+const objectAudioEmpty = document.querySelector("[data-object-audio-empty]");
+const assistantToolButtons = [...document.querySelectorAll("[data-assistant-tool]")];
+const assistantToolPanels = [...document.querySelectorAll("[data-assistant-panel]")];
 
 const audioCache = new Map();
 const bufferCache = new Map();
@@ -50,6 +54,7 @@ let audioContext = null;
 let activeSources = [];
 let activeClipNodes = new Map();
 let playbackMasterGain = null;
+const mutedTrackIds = new Set();
 const pendingObjectTransforms = new Map();
 const processedAIObjectResponses = new Set();
 const processedAIBackgroundResponses = new Set();
@@ -203,6 +208,73 @@ function getTrack(audio, trackId) {
     return audio?.tracks.find((track) => track.id === trackId);
 }
 
+function setAssistantTool(tool) {
+    const nextTool = tool === "audio" ? "audio" : "ai";
+    assistantToolButtons.forEach((button) => {
+        const isActive = button.dataset.assistantTool === nextTool;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-selected", String(isActive));
+        button.tabIndex = isActive ? 0 : -1;
+    });
+    assistantToolPanels.forEach((panel) => {
+        panel.hidden = panel.dataset.assistantPanel !== nextTool;
+    });
+}
+
+function getTrackDisplayName(trackId) {
+    if (trackId === "narration") return t("audio.narration");
+    if (trackId === "free") return t("audio.background");
+    return t("audio.effects");
+}
+
+function updateTrackMuteButtons() {
+    trackMuteButtons.forEach((button) => {
+        const trackId = button.dataset.trackMute;
+        const isMuted = mutedTrackIds.has(trackId);
+        const trackName = getTrackDisplayName(trackId);
+        button.innerHTML = isMuted
+            ? '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8h3l4-3v10l-4-3H3Z"/><path d="m13 8 4 4m0-4-4 4"/></svg>'
+            : '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8h3l4-3v10l-4-3H3Z"/><path d="M13 7.2a4 4 0 0 1 0 5.6"/><path d="M15 5.2a6.7 6.7 0 0 1 0 9.6"/></svg>';
+        button.classList.toggle("is-muted", isMuted);
+        button.setAttribute("aria-pressed", String(isMuted));
+        button.setAttribute(
+            "aria-label",
+            t(isMuted ? "audio.unmuteTrack" : "audio.muteTrack", { track: trackName }),
+        );
+        button.closest("[data-audio-track]")?.classList.toggle("is-muted", isMuted);
+    });
+}
+
+function setTrackMuted(trackId, muted) {
+    if (!TRACK_IDS.includes(trackId)) return;
+    if (muted) mutedTrackIds.add(trackId);
+    else mutedTrackIds.delete(trackId);
+    activeClipNodes.forEach((nodes) => {
+        if (nodes.trackId === trackId && nodes.muteGain && audioContext) {
+            nodes.muteGain.gain.setTargetAtTime(
+                muted ? 0 : 1,
+                audioContext.currentTime,
+                0.015,
+            );
+        }
+    });
+    updateTrackMuteButtons();
+}
+
+function resetTrackMutes() {
+    mutedTrackIds.clear();
+    activeClipNodes.forEach((nodes) => {
+        if (nodes.muteGain) {
+            if (audioContext) {
+                nodes.muteGain.gain.setTargetAtTime(1, audioContext.currentTime, 0.015);
+            } else {
+                nodes.muteGain.gain.value = 1;
+            }
+        }
+    });
+    updateTrackMuteButtons();
+}
+
 function getObjectClip(instanceId) {
     if (!instanceId) return null;
     return getActiveAudio()?.tracks.flatMap((track) => track.clips).find(
@@ -274,9 +346,11 @@ function renderObjectAudioPicker() {
     const options = getAudioOptionsForObject(object);
     if (!object || options.length === 0) {
         objectAudioPicker.hidden = true;
+        if (objectAudioEmpty) objectAudioEmpty.hidden = false;
         objectAudioOptions?.replaceChildren();
         return;
     }
+    if (objectAudioEmpty) objectAudioEmpty.hidden = true;
     const asset = localizedAssetsByKey.get(object.asset_key);
     const iconName = asset?.name || object.label || object.asset_key;
     const selectedKey = getSelectedObjectAudioKey(object, options);
@@ -555,6 +629,7 @@ function clearObjectAudioSelection() {
     objectAudioChoiceRevision += 1;
     isChangingObjectAudio = false;
     selectedCanvasObject = null;
+    setAssistantTool("ai");
     setObjectAudioError();
     renderObjectAudioPicker();
 }
@@ -693,6 +768,7 @@ function renderAudio() {
         ));
     });
     if (timelineRoot) timelineRoot.classList.toggle("is-empty", !audio);
+    updateTrackMuteButtons();
     updateEffectControls();
     updateTransport();
     requestAnimationFrame(movePlayheadElement);
@@ -877,8 +953,10 @@ function animatePlayback(revision, startPosition) {
 
 async function playTimeline() {
     const audio = getActiveAudio();
-    const clips = audio?.tracks.flatMap((track) => track.clips) || [];
-    if (clips.length === 0 || isPlaying || isPreparing) return;
+    const clipEntries = audio?.tracks.flatMap((track) => track.clips.map(
+        (clip) => ({ clip, trackId: track.id }),
+    )) || [];
+    if (clipEntries.length === 0 || isPlaying || isPreparing) return;
 
     haltPlayback();
     const revision = playbackRevision;
@@ -891,7 +969,9 @@ async function playTimeline() {
     try {
         const context = getWebAudioContext();
         await context.resume();
-        const buffers = await Promise.all(clips.map((clip) => loadAudioBuffer(clip.audio_url)));
+        const buffers = await Promise.all(clipEntries.map(
+            ({ clip }) => loadAudioBuffer(clip.audio_url),
+        ));
         if (revision !== playbackRevision) return;
 
         isPreparing = false;
@@ -901,16 +981,18 @@ async function playTimeline() {
         playbackMasterGain = context.createGain();
         playbackMasterGain.gain.value = 1;
         playbackMasterGain.connect(context.destination);
-        clips.forEach((clip, index) => {
+        clipEntries.forEach(({ clip, trackId }, index) => {
             const clipEnd = clip.start_time + clip.duration;
             if (clipEnd <= startPosition) return;
             const source = context.createBufferSource();
             const gain = context.createGain();
+            const muteGain = context.createGain();
             const panner = typeof context.createStereoPanner === "function"
                 ? context.createStereoPanner()
                 : null;
             source.buffer = buffers[index];
             gain.gain.value = clip.volume;
+            muteGain.gain.value = mutedTrackIds.has(trackId) ? 0 : 1;
             const delay = Math.max(0, clip.start_time - startPosition);
             const offset = Math.max(0, startPosition - clip.start_time);
             const sourceOffset = clip.trim_start + offset;
@@ -930,11 +1012,11 @@ async function playTimeline() {
             );
             if (panner) {
                 panner.pan.value = clip.pan;
-                effectOutput.connect(gain).connect(panner).connect(playbackMasterGain);
+                effectOutput.connect(gain).connect(panner).connect(muteGain).connect(playbackMasterGain);
             } else {
-                effectOutput.connect(gain).connect(playbackMasterGain);
+                effectOutput.connect(gain).connect(muteGain).connect(playbackMasterGain);
             }
-            activeClipNodes.set(clip.clip_id, { gain, panner });
+            activeClipNodes.set(clip.clip_id, { gain, panner, muteGain, trackId });
             source.start(when, sourceOffset, available);
             activeSources.push(source);
         });
@@ -1337,6 +1419,7 @@ async function handleCanvasObjectsReplaced(detail) {
 
 export function activateDraftAudio(context) {
     haltPlayback();
+    resetTrackMutes();
     clearEffectsSelection();
     clearObjectAudioSelection();
     currentTime = 0;
@@ -1349,6 +1432,7 @@ export function activateDraftAudio(context) {
 
 export function showRemoteAudioLoading(context, projectId) {
     haltPlayback();
+    resetTrackMutes();
     clearEffectsSelection();
     clearObjectAudioSelection();
     currentTime = 0;
@@ -1363,6 +1447,7 @@ export function showRemoteAudioLoading(context, projectId) {
 }
 
 export function restoreRemoteAudio(context, projectId, audio) {
+    resetTrackMutes();
     const key = getAudioKey(projectId, context.stepId);
     audioCache.set(key, normalizeAudio(audio));
     activeContext = { ...context, projectId };
@@ -1434,6 +1519,7 @@ export function clearAudioCache() {
     activeContext = null;
     activeAudioKey = null;
     isAIPreviewLocked = false;
+    resetTrackMutes();
     clearEffectsSelection();
     clearObjectAudioSelection();
     renderAudio();
@@ -1442,6 +1528,15 @@ export function clearAudioCache() {
 playButton?.addEventListener("click", playTimeline);
 pauseButton?.addEventListener("click", pausePlayback);
 stopButton?.addEventListener("click", stopPlayback);
+assistantToolButtons.forEach((button) => {
+    button.addEventListener("click", () => setAssistantTool(button.dataset.assistantTool));
+});
+trackMuteButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+        const trackId = button.dataset.trackMute;
+        setTrackMuted(trackId, !mutedTrackIds.has(trackId));
+    });
+});
 effectButtons.forEach((button) => {
     button.addEventListener("click", () => {
         const effectName = button.dataset.audioEffect;
@@ -1564,6 +1659,11 @@ window.addEventListener("puzzle-audiobook:canvas-object-selected", (event) => {
         };
     }
     renderObjectAudioPicker();
+    setAssistantTool(
+        selectedCanvasObject && getAudioOptionsForObject(selectedCanvasObject).length > 0
+            ? "audio"
+            : "ai",
+    );
 });
 window.addEventListener("puzzle-audiobook:canvas-object-deleted", (event) => {
     handleCanvasObjectDeleted(event.detail);
@@ -1587,4 +1687,5 @@ window.addEventListener("puzzle-audiobook:localized-assets", (event) => {
     renderObjectAudioPicker();
 });
 
+setAssistantTool("ai");
 renderAudio();

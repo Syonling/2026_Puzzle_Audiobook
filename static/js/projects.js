@@ -1,5 +1,5 @@
-import { request } from "./api.js?v=20260824-1";
-import { t } from "./i18n.js?v=20260824-1";
+import { request } from "./api.js?v=20260825-1";
+import { t } from "./i18n.js?v=20260825-1";
 import {
     activateDraftCanvas,
     clearCanvasCache,
@@ -10,7 +10,7 @@ import {
     restoreRemoteCanvas,
     showRemoteCanvasLoading,
     storeRemoteCanvas,
-} from "./canvas.js?v=20260824-1";
+} from "./canvas.js?v=20260825-1";
 import {
     activateDraftAudio,
     clearAudioCache,
@@ -21,7 +21,7 @@ import {
     showRemoteAudioLoading,
     storeRemoteAudio,
     syncAudioToCanvasObjects,
-} from "./audio.js?v=20260824-1";
+} from "./audio.js?v=20260825-1";
 
 const getDefaultProjectTitle = () => t("project.unnamed");
 const saveButton = document.querySelector("[data-save-project]");

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="AI 辅助空间拼贴式有声绘本创作工作台" data-i18n-content="app.description">
     <title>有声绘本工作台</title>
-    <link rel="stylesheet" href="/static/css/app.css?v=20260819-9">
+    <link rel="stylesheet" href="/static/css/app.css?v=20260825-2">
 </head>
 <body data-i18n-title="app.title">
     <div class="app-shell">
@@ -84,46 +84,54 @@
                         <div class="story-step-buttons" data-step-buttons aria-label="切换故事步骤" data-i18n-aria-label="story.switchSteps"></div>
                     </section>
 
-                    <section class="ai-question-panel" aria-labelledby="ai-question-title">
-                        <div class="panel-heading ai-question-heading">
-                            <p class="eyebrow">AI</p>
-                            <h2 id="ai-question-title" data-i18n="ai.heading">AI 创作助手</h2>
+                    <section class="assistant-workspace" aria-label="创作辅助工具" data-i18n-aria-label="assistantTools.label">
+                        <div class="assistant-workspace-tabs" role="tablist" aria-label="选择辅助工具" data-i18n-aria-label="assistantTools.tabs">
+                            <button type="button" role="tab" aria-selected="true" data-assistant-tool="ai" data-i18n="assistantTools.ai">AI 助手</button>
+                            <button type="button" role="tab" aria-selected="false" data-assistant-tool="audio" data-i18n="assistantTools.audio">素材声音</button>
                         </div>
-                        <form class="ai-question-form" data-ai-question-form>
-                            <label class="ai-question-field">
-                                <span class="ai-question-icon" aria-hidden="true">🤔</span>
-                                <input
-                                    type="text"
-                                    name="user_request"
-                                    maxlength="1000"
-                                    placeholder="问问 AI，这一页可以怎么画？"
-                                    data-i18n-placeholder="ai.placeholder"
-                                    autocomplete="off"
-                                    data-ai-question-input
-                                    required
-                                >
-                            </label>
-                            <button class="ai-question-submit" type="submit" data-ai-question-submit data-i18n="ai.submit">
-                                提交
-                            </button>
-                        </form>
-                        <div class="ai-preset-list" data-ai-preset-list aria-label="预设 AI 问题" data-i18n-aria-label="ai.presets">
-                            <span class="ai-preset-status" data-i18n="ai.presetsLoading">正在加载推荐问题…</span>
+                        <div class="assistant-tool-panel" role="tabpanel" data-assistant-panel="ai">
+                            <section class="ai-question-panel" aria-labelledby="ai-question-title">
+                                <div class="panel-heading ai-question-heading">
+                                    <p class="eyebrow">AI</p>
+                                    <h2 id="ai-question-title" data-i18n="ai.heading">AI 创作助手</h2>
+                                </div>
+                                <form class="ai-question-form" data-ai-question-form>
+                                    <label class="ai-question-field">
+                                        <span class="ai-question-icon" aria-hidden="true">🤔</span>
+                                        <input
+                                            type="text"
+                                            name="user_request"
+                                            maxlength="1000"
+                                            placeholder="问问 AI，这一页可以怎么画？"
+                                            data-i18n-placeholder="ai.placeholder"
+                                            autocomplete="off"
+                                            data-ai-question-input
+                                            required
+                                        >
+                                    </label>
+                                    <button class="ai-question-submit" type="submit" data-ai-question-submit data-i18n="ai.submit">提交</button>
+                                </form>
+                                <div class="ai-preset-list" data-ai-preset-list aria-label="预设 AI 问题" data-i18n-aria-label="ai.presets">
+                                    <span class="ai-preset-status" data-i18n="ai.presetsLoading">正在加载推荐问题…</span>
+                                </div>
+                                <p class="ai-question-error" role="alert" data-ai-question-error hidden></p>
+                            </section>
                         </div>
-                        <p class="ai-question-error" role="alert" data-ai-question-error hidden></p>
-                    </section>
-
-                    <section class="object-audio-picker" data-object-audio-picker hidden>
-                        <div class="object-audio-picker-heading">
-                            <div>
-                                <p class="eyebrow" data-i18n="audioPicker.eyebrow">Icon Audio</p>
-                                <h2 data-i18n="audioPicker.heading">素材声音</h2>
-                            </div>
-                            <span class="object-audio-picker-current" data-object-audio-current></span>
+                        <div class="assistant-tool-panel" role="tabpanel" data-assistant-panel="audio" hidden>
+                            <p class="object-audio-empty" data-object-audio-empty data-i18n="audioPicker.empty">选择有声音的画布素材后，可在这里更换声音。</p>
+                            <section class="object-audio-picker" data-object-audio-picker hidden>
+                                <div class="object-audio-picker-heading">
+                                    <div>
+                                        <p class="eyebrow" data-i18n="audioPicker.eyebrow">Icon Audio</p>
+                                        <h2 data-i18n="audioPicker.heading">素材声音</h2>
+                                    </div>
+                                    <span class="object-audio-picker-current" data-object-audio-current></span>
+                                </div>
+                                <p class="object-audio-picker-name" data-object-audio-name></p>
+                                <div class="object-audio-options" role="group" aria-label="素材音频备选" data-i18n-aria-label="audioPicker.options" data-object-audio-options></div>
+                                <p class="object-audio-picker-error" role="alert" data-object-audio-error hidden></p>
+                            </section>
                         </div>
-                        <p class="object-audio-picker-name" data-object-audio-name></p>
-                        <div class="object-audio-options" role="group" aria-label="素材音频备选" data-i18n-aria-label="audioPicker.options" data-object-audio-options></div>
-                        <p class="object-audio-picker-error" role="alert" data-object-audio-error hidden></p>
                     </section>
 
                     <p class="story-error" role="alert" data-story-error hidden></p>
@@ -216,19 +224,28 @@
                     <div class="audio-track-editor" data-audio-editor>
                         <div class="audio-time-ruler" data-audio-ruler aria-hidden="true"></div>
                         <div class="audio-track-row is-locked" data-audio-track="narration" data-i18n-title="audio.narrationFixed">
-                            <span class="audio-track-label" data-i18n="audio.narration">旁白</span>
+                            <span class="audio-track-header">
+                                <button type="button" class="audio-track-mute" data-track-mute="narration" aria-label="静音旁白轨道" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8h3l4-3v10l-4-3H3Z"/><path d="M13 7.2a4 4 0 0 1 0 5.6"/><path d="M15 5.2a6.7 6.7 0 0 1 0 9.6"/></svg></button>
+                                <span class="audio-track-label" data-i18n="audio.narration">旁白</span>
+                            </span>
                             <span class="audio-track-lane" data-audio-lane="narration" aria-readonly="true">
                                 <span class="audio-clip-layer" data-audio-clips="narration"></span>
                             </span>
                         </div>
                         <div class="audio-track-row" data-audio-track="free">
-                            <span class="audio-track-label" data-i18n="audio.background">背景音频</span>
+                            <span class="audio-track-header">
+                                <button type="button" class="audio-track-mute" data-track-mute="free" aria-label="静音背景音频轨道" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8h3l4-3v10l-4-3H3Z"/><path d="M13 7.2a4 4 0 0 1 0 5.6"/><path d="M15 5.2a6.7 6.7 0 0 1 0 9.6"/></svg></button>
+                                <span class="audio-track-label" data-i18n="audio.background">背景音频</span>
+                            </span>
                             <span class="audio-track-lane" data-audio-lane="free">
                                 <span class="audio-clip-layer" data-audio-clips="free"></span>
                             </span>
                         </div>
                         <div class="audio-track-row" data-audio-track="effects">
-                            <span class="audio-track-label" data-i18n="audio.effects">素材音效</span>
+                            <span class="audio-track-header">
+                                <button type="button" class="audio-track-mute" data-track-mute="effects" aria-label="静音素材音效轨道" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8h3l4-3v10l-4-3H3Z"/><path d="M13 7.2a4 4 0 0 1 0 5.6"/><path d="M15 5.2a6.7 6.7 0 0 1 0 9.6"/></svg></button>
+                                <span class="audio-track-label" data-i18n="audio.effects">素材音效</span>
+                            </span>
                             <span class="audio-track-lane" data-audio-lane="effects">
                                 <span class="audio-clip-layer" data-audio-clips="effects"></span>
                             </span>
@@ -346,12 +363,12 @@
         </div>
     </dialog>
 
-    <script type="module" src="/static/js/i18n.js?v=20260824-1"></script>
-    <script type="module" src="/static/js/stories.js?v=20260824-1"></script>
-    <script type="module" src="/static/js/projects.js?v=20260824-1"></script>
-    <script type="module" src="/static/js/auth.js?v=20260824-1"></script>
-    <script type="module" src="/static/js/ai_questions.js?v=20260824-1"></script>
-    <script type="module" src="/static/js/assets.js?v=20260824-1"></script>
-    <script type="module" src="/static/js/audio.js?v=20260824-1"></script>
+    <script type="module" src="/static/js/i18n.js?v=20260825-1"></script>
+    <script type="module" src="/static/js/stories.js?v=20260825-1"></script>
+    <script type="module" src="/static/js/projects.js?v=20260825-1"></script>
+    <script type="module" src="/static/js/auth.js?v=20260825-1"></script>
+    <script type="module" src="/static/js/ai_questions.js?v=20260825-1"></script>
+    <script type="module" src="/static/js/assets.js?v=20260825-1"></script>
+    <script type="module" src="/static/js/audio.js?v=20260825-1"></script>
 </body>
 </html>
