@@ -121,13 +121,7 @@ function moveObject(event, wrapper, object) {
     if (event.button !== 0 || isAIPreviewLocked) return;
     event.preventDefault();
     event.stopPropagation();
-    selectedObjectId = object.instance_id;
-    document.querySelectorAll(".canvas-object").forEach((element) => {
-        element.classList.toggle(
-            "is-selected",
-            element.dataset.instanceId === selectedObjectId,
-        );
-    });
+    selectObject(object.instance_id);
 
     const paper = document.querySelector("[data-canvas-paper]");
     const rect = paper.getBoundingClientRect();
@@ -464,6 +458,15 @@ function selectObject(instanceId) {
             element.dataset.instanceId === selectedObjectId,
         );
     });
+    const object = instanceId
+        ? getActiveCanvas()?.objects.find((item) => item.instance_id === instanceId)
+        : null;
+    window.dispatchEvent(new CustomEvent("puzzle-audiobook:canvas-object-selected", {
+        detail: {
+            context: activeContext ? { ...activeContext } : null,
+            object: object ? { ...object } : null,
+        },
+    }));
 }
 
 function addAssetToCanvas(asset, clientX, clientY) {
@@ -473,6 +476,10 @@ function addAssetToCanvas(asset, clientX, clientY) {
 
     notifyHistoryCheckpoint();
     const rect = paper.getBoundingClientRect();
+    const audioOptions = Array.isArray(asset.audio_options) ? asset.audio_options : [];
+    const defaultAudio = audioOptions.find(
+        (option) => option.audio_key === asset.default_audio_key,
+    ) || audioOptions.find((option) => option.is_default === true) || null;
     const addedObject = {
         instance_id: createInstanceId(),
         asset_id: asset.id,
@@ -480,7 +487,8 @@ function addAssetToCanvas(asset, clientX, clientY) {
         asset_key: asset.asset_key,
         label: asset.name,
         image_url: asset.image_url,
-        audio_url: asset.audio_url ?? null,
+        audio_url: defaultAudio?.audio_url ?? asset.audio_url ?? null,
+        selected_audio_key: defaultAudio?.audio_key ?? asset.default_audio_key ?? null,
         x: clamp(clientX - rect.left, 0, rect.width),
         y: clamp(clientY - rect.top, 0, rect.height),
         scale: 1,
@@ -488,8 +496,8 @@ function addAssetToCanvas(asset, clientX, clientY) {
         flip_x: false,
     };
     canvas.objects.push(addedObject);
-    selectedObjectId = addedObject.instance_id;
     renderActiveCanvas();
+    selectObject(addedObject.instance_id);
     notifyCanvasChanged();
     window.dispatchEvent(new CustomEvent("puzzle-audiobook:canvas-object-added", {
         detail: {
@@ -520,7 +528,7 @@ function applyBackgroundToCanvas(asset) {
         image_url: asset.image_url,
         audio_url: asset.audio_url ?? null,
     };
-    selectedObjectId = null;
+    selectObject(null);
     renderActiveCanvas();
     notifyCanvasChanged();
     window.dispatchEvent(new CustomEvent("puzzle-audiobook:canvas-background-changed", {
@@ -795,10 +803,7 @@ paper?.addEventListener("pointerdown", (event) => {
         || event.target.matches("[data-canvas-object-layer]")
         || event.target.closest("[data-canvas-empty]")
     ) {
-        selectedObjectId = null;
-        document.querySelectorAll(".canvas-object.is-selected").forEach((element) => {
-            element.classList.remove("is-selected");
-        });
+        selectObject(null);
     }
 });
 document.querySelector("[data-canvas-background-remove]")?.addEventListener("click", (event) => {
@@ -826,6 +831,20 @@ window.addEventListener("puzzle-audiobook:localized-assets", (event) => {
     localizedAssetsByKey.clear();
     assets.forEach((asset) => localizedAssetsByKey.set(asset.asset_key, { ...asset }));
     renderActiveCanvas();
+});
+window.addEventListener("puzzle-audiobook:canvas-object-audio-choice-applied", (event) => {
+    if (
+        !activeContext
+        || event.detail?.context?.stepId !== activeContext.stepId
+        || !event.detail?.instanceId
+    ) return;
+    const object = getActiveCanvas()?.objects.find(
+        (item) => item.instance_id === event.detail.instanceId,
+    );
+    if (!object) return;
+    object.selected_audio_key = event.detail.audioKey ?? null;
+    object.audio_url = event.detail.audioUrl ?? null;
+    notifyCanvasChanged();
 });
 window.addEventListener("puzzle-audiobook:localized-story", (event) => {
     if (

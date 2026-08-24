@@ -78,6 +78,49 @@ def get_assets(
             parameters,
         ).fetchall()
 
+        assets = [dict(row) for row in rows]
+        asset_ids = [asset["id"] for asset in assets]
+        options_by_asset_id = {
+            asset_id: []
+            for asset_id in asset_ids
+        }
+
+        if asset_ids:
+            placeholders = ", ".join("?" for _ in asset_ids)
+            option_rows = db.execute(
+                f"""
+                SELECT
+                    ao.asset_id,
+                    ao.audio_key,
+                    COALESCE(aot.name, ao.audio_key) AS name,
+                    ao.audio_url,
+                    ao.is_default,
+                    ao.sort_order
+                FROM asset_audio_options AS ao
+                LEFT JOIN asset_audio_option_translations AS aot
+                    ON aot.audio_option_id = ao.id
+                   AND aot.language = ?
+                WHERE ao.asset_id IN ({placeholders})
+                ORDER BY
+                    ao.asset_id,
+                    ao.sort_order,
+                    ao.id
+                """,
+                [x_language, *asset_ids],
+            ).fetchall()
+
+            for row in option_rows:
+                options_by_asset_id[row["asset_id"]].append(
+                    {
+                        "audio_key": row["audio_key"],
+                        # 当前没有音频名称时，使用 audio_key 作为稳定技术回退值。
+                        "name": row["name"],
+                        "audio_url": row["audio_url"],
+                        "is_default": bool(row["is_default"]),
+                        "sort_order": row["sort_order"],
+                    }
+                )
+
     except sqlite3.DatabaseError as error:
         logger.exception("Failed to get assets")
 
@@ -86,4 +129,22 @@ def get_assets(
             detail="Failed to get assets",
         ) from error
 
-    return [dict(row) for row in rows]
+    for asset in assets:
+        audio_options = options_by_asset_id[asset["id"]]
+        default_option = next(
+            (
+                option
+                for option in audio_options
+                if option["is_default"]
+            ),
+            None,
+        )
+
+        asset["default_audio_key"] = (
+            default_option["audio_key"]
+            if default_option is not None
+            else None
+        )
+        asset["audio_options"] = audio_options
+
+    return assets

@@ -24,6 +24,11 @@ const effectSelection = document.querySelector("[data-audio-effect-selection]");
 const effectButtons = [...document.querySelectorAll("[data-audio-effect]")];
 const effectUndoButton = document.querySelector("[data-audio-effect-undo]");
 const effectResetButton = document.querySelector("[data-audio-effect-reset]");
+const objectAudioPicker = document.querySelector("[data-object-audio-picker]");
+const objectAudioCurrent = document.querySelector("[data-object-audio-current]");
+const objectAudioName = document.querySelector("[data-object-audio-name]");
+const objectAudioOptions = document.querySelector("[data-object-audio-options]");
+const objectAudioError = document.querySelector("[data-object-audio-error]");
 
 const audioCache = new Map();
 const bufferCache = new Map();
@@ -50,6 +55,9 @@ let audioMutationRevision = 0;
 let isAIPreviewLocked = false;
 let selectedClipId = null;
 let previousEffectsSnapshot = null;
+let selectedCanvasObject = null;
+let objectAudioChoiceRevision = 0;
+let isChangingObjectAudio = false;
 
 function createDefaultEffects() {
     return {
@@ -139,6 +147,7 @@ function normalizeClip(clip) {
         object_instance_id: clip.object_instance_id || null,
         asset_id: clip.asset_id ?? null,
         asset_key: clip.asset_key || "",
+        audio_key: clip.audio_key || null,
         name: clip.name || clip.asset_key || t("audio.clip"),
         audio_url: clip.audio_url,
         start_time: Math.max(0, Number(clip.start_time) || 0),
@@ -187,6 +196,210 @@ function getActiveAudio() {
 
 function getTrack(audio, trackId) {
     return audio?.tracks.find((track) => track.id === trackId);
+}
+
+function getObjectClip(instanceId) {
+    if (!instanceId) return null;
+    return getActiveAudio()?.tracks.flatMap((track) => track.clips).find(
+        (clip) => clip.object_instance_id === instanceId,
+    ) || null;
+}
+
+function getAudioOptionsForObject(object) {
+    if (!object?.asset_key) return [];
+    const asset = localizedAssetsByKey.get(object.asset_key);
+    const options = Array.isArray(asset?.audio_options)
+        ? asset.audio_options.filter(
+            (option) => option?.audio_key && option?.audio_url,
+        ).sort((left, right) => Number(left.sort_order) - Number(right.sort_order))
+        : [];
+    if (options.length > 0) return options;
+    const fallbackUrl = asset?.audio_url || object.audio_url;
+    if (!fallbackUrl) return [];
+    return [{
+        audio_key: asset?.default_audio_key || object.selected_audio_key || `${object.asset_key}_default`,
+        name: asset?.name || object.label || object.asset_key,
+        audio_url: fallbackUrl,
+        is_default: true,
+        sort_order: 0,
+    }];
+}
+
+function getSelectedObjectAudioKey(object, options) {
+    const clip = getObjectClip(object?.instance_id);
+    if (clip?.audio_key) return clip.audio_key;
+    const matchingOption = options.find(
+        (option) => option.audio_url === clip?.audio_url,
+    );
+    if (matchingOption) return matchingOption.audio_key;
+    if (object?.selected_audio_key !== undefined) return object.selected_audio_key;
+    if (clip?.audio_url) {
+        return options.find((option) => option.audio_url === clip.audio_url)?.audio_key ?? null;
+    }
+    return null;
+}
+
+function createObjectAudioOption(option, selectedKey) {
+    const isSilent = option === null;
+    const audioKey = isSilent ? null : option.audio_key;
+    const label = isSilent ? t("audioPicker.silent") : option.name;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "object-audio-option";
+    button.classList.toggle("is-active", audioKey === selectedKey);
+    button.disabled = isChangingObjectAudio || isAIPreviewLocked;
+    button.setAttribute("aria-pressed", String(audioKey === selectedKey));
+    button.title = label;
+
+    const icon = document.createElement("span");
+    icon.className = "object-audio-option-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = isSilent ? "🔇" : "🔊";
+    const text = document.createElement("span");
+    text.className = "object-audio-option-label";
+    text.textContent = label;
+    button.append(icon, text);
+    button.addEventListener("click", () => changeSelectedObjectAudio(option));
+    return button;
+}
+
+function renderObjectAudioPicker() {
+    if (!objectAudioPicker) return;
+    const object = selectedCanvasObject;
+    const options = getAudioOptionsForObject(object);
+    if (!object || options.length === 0) {
+        objectAudioPicker.hidden = true;
+        objectAudioOptions?.replaceChildren();
+        return;
+    }
+    const asset = localizedAssetsByKey.get(object.asset_key);
+    const iconName = asset?.name || object.label || object.asset_key;
+    const selectedKey = getSelectedObjectAudioKey(object, options);
+    const selectedOption = options.find((option) => option.audio_key === selectedKey);
+    const selectedName = selectedOption?.name || t("audioPicker.silent");
+    if (objectAudioCurrent) objectAudioCurrent.textContent = selectedName;
+    if (objectAudioName) {
+        objectAudioName.textContent = t("audioPicker.iconAndAudio", {
+            icon: iconName,
+            audio: selectedName,
+        });
+    }
+    objectAudioOptions?.replaceChildren(
+        ...options.map((option) => createObjectAudioOption(option, selectedKey)),
+        createObjectAudioOption(null, selectedKey),
+    );
+    objectAudioPicker.hidden = false;
+}
+
+function setObjectAudioError(message = "") {
+    if (!objectAudioError) return;
+    objectAudioError.textContent = message;
+    objectAudioError.hidden = !message;
+}
+
+function notifyCanvasObjectAudioChoice(object, option) {
+    window.dispatchEvent(new CustomEvent("puzzle-audiobook:canvas-object-audio-choice-applied", {
+        detail: {
+            context: activeContext ? { ...activeContext } : null,
+            instanceId: object.instance_id,
+            audioKey: option?.audio_key ?? null,
+            audioUrl: option?.audio_url ?? null,
+        },
+    }));
+}
+
+async function changeSelectedObjectAudio(option) {
+    const object = selectedCanvasObject;
+    if (!object?.instance_id || isChangingObjectAudio || isAIPreviewLocked) return;
+    const options = getAudioOptionsForObject(object);
+    const selectedKey = getSelectedObjectAudioKey(object, options);
+    const nextKey = option?.audio_key ?? null;
+    if (selectedKey === nextKey) return;
+
+    const revision = ++objectAudioChoiceRevision;
+    isChangingObjectAudio = true;
+    setObjectAudioError(option ? t("audioPicker.switching") : "");
+    renderObjectAudioPicker();
+
+    let buffer = null;
+    try {
+        if (option) buffer = await loadAudioBuffer(option.audio_url);
+        if (
+            revision !== objectAudioChoiceRevision
+            || selectedCanvasObject?.instance_id !== object.instance_id
+            || activeContext?.stepId !== object.selectionStepId
+        ) return;
+
+        const audio = getActiveAudio();
+        const track = getTrack(audio, "effects");
+        if (!audio || !track) return;
+        notifyHistoryCheckpoint();
+        haltPlayback();
+        const existingClip = getObjectClip(object.instance_id);
+
+        if (!option) {
+            audio.tracks.forEach((audioTrack) => {
+                audioTrack.clips = audioTrack.clips.filter(
+                    (clip) => clip.object_instance_id !== object.instance_id,
+                );
+            });
+        } else {
+            const duration = Math.max(0.1, buffer.duration);
+            const canvasWidth = document.querySelector("[data-canvas-paper]")
+                ?.getBoundingClientRect().width;
+            const derivedAudio = deriveAudioFromObject(object, canvasWidth);
+            const clip = existingClip || normalizeClip({
+                clip_id: createInstanceId(),
+                object_instance_id: object.instance_id,
+                asset_id: object.asset_id,
+                asset_key: object.asset_key,
+                start_time: track.clips.reduce(
+                    (maximum, candidate) => Math.max(maximum, candidate.start_time + candidate.duration),
+                    0,
+                ),
+                volume: derivedAudio.volume,
+                pan: derivedAudio.pan,
+                audio_url: option.audio_url,
+                source_duration: duration,
+                trim_start: 0,
+                trim_end: duration,
+                duration,
+            });
+            clip.audio_key = option.audio_key;
+            clip.audio_url = option.audio_url;
+            clip.name = option.name;
+            clip.source_duration = duration;
+            clip.trim_start = 0;
+            clip.trim_end = duration;
+            clip.duration = duration;
+            clip.effects = createDefaultEffects();
+            audio.tracks.forEach((audioTrack) => {
+                audioTrack.clips = audioTrack.clips.filter(
+                    (candidate) => candidate.object_instance_id !== object.instance_id,
+                );
+            });
+            track.clips.push(clip);
+        }
+
+        selectedCanvasObject = {
+            ...object,
+            selected_audio_key: nextKey,
+            audio_url: option?.audio_url ?? null,
+        };
+        previousEffectsSnapshot = null;
+        if (existingClip?.clip_id === selectedClipId && !option) clearEffectsSelection();
+        notifyCanvasObjectAudioChoice(object, option);
+        renderAudio();
+        notifyAudioChanged();
+        setObjectAudioError();
+    } catch {
+        if (revision === objectAudioChoiceRevision) setObjectAudioError(t("audioPicker.failed"));
+    } finally {
+        if (revision === objectAudioChoiceRevision) {
+            isChangingObjectAudio = false;
+            renderObjectAudioPicker();
+        }
+    }
 }
 
 function getSelectedEffectsClip() {
@@ -256,6 +469,14 @@ function clearEffectsSelection() {
     selectedClipId = null;
     previousEffectsSnapshot = null;
     updateEffectControls();
+}
+
+function clearObjectAudioSelection() {
+    objectAudioChoiceRevision += 1;
+    isChangingObjectAudio = false;
+    selectedCanvasObject = null;
+    setObjectAudioError();
+    renderObjectAudioPicker();
 }
 
 function getTimelineDuration(audio = getActiveAudio()) {
@@ -882,11 +1103,17 @@ async function handleCanvasObjectAdded(detail) {
             (maximum, clip) => Math.max(maximum, clip.start_time + clip.duration),
             0,
         );
+    const matchedAudioOption = getAudioOptionsForObject(object).find(
+        (option) => option.audio_url === object.audio_url,
+    );
     const clip = normalizeClip({
         clip_id: createInstanceId(),
         object_instance_id: object.instance_id,
         asset_id: object.asset_id,
         asset_key: object.asset_key,
+        audio_key: object.selected_audio_key !== undefined
+            ? object.selected_audio_key
+            : matchedAudioOption?.audio_key ?? null,
         name: object.label || object.asset_key,
         audio_url: object.audio_url,
         start_time: startTime,
@@ -898,6 +1125,7 @@ async function handleCanvasObjectAdded(detail) {
     });
     track.clips.push(clip);
     renderAudio();
+    renderObjectAudioPicker();
     notifyAudioChanged();
 
     const expectedKey = activeAudioKey;
@@ -923,6 +1151,7 @@ async function handleCanvasObjectAdded(detail) {
             });
         }
         renderAudio();
+        renderObjectAudioPicker();
         notifyAudioChanged();
     } catch {
         if (status && activeAudioKey === expectedKey) status.textContent = t("audio.fileFailed");
@@ -968,6 +1197,9 @@ async function handleCanvasBackgroundChanged(detail) {
 
 function handleCanvasObjectDeleted(detail) {
     if (!activeContext || detail.context?.stepId !== activeContext.stepId) return;
+    if (selectedCanvasObject?.instance_id === detail.object?.instance_id) {
+        clearObjectAudioSelection();
+    }
     const audio = getActiveAudio();
     if (!audio) return;
     let changed = false;
@@ -988,6 +1220,7 @@ function handleCanvasObjectDeleted(detail) {
 
 async function handleCanvasObjectsReplaced(detail) {
     if (!activeContext || detail.context?.stepId !== activeContext.stepId) return;
+    clearObjectAudioSelection();
     const audio = getActiveAudio();
     if (!audio) return;
     if (detail.responseToken) {
@@ -1019,6 +1252,7 @@ async function handleCanvasObjectsReplaced(detail) {
 export function activateDraftAudio(context) {
     haltPlayback();
     clearEffectsSelection();
+    clearObjectAudioSelection();
     currentTime = 0;
     const key = getAudioKey(null, context.stepId);
     if (!audioCache.has(key)) audioCache.set(key, createEmptyAudio());
@@ -1030,6 +1264,7 @@ export function activateDraftAudio(context) {
 export function showRemoteAudioLoading(context, projectId) {
     haltPlayback();
     clearEffectsSelection();
+    clearObjectAudioSelection();
     currentTime = 0;
     activeContext = { ...context, projectId };
     activeAudioKey = getAudioKey(projectId, context.stepId);
@@ -1048,6 +1283,7 @@ export function restoreRemoteAudio(context, projectId, audio) {
     activeAudioKey = key;
     currentTime = 0;
     clearEffectsSelection();
+    clearObjectAudioSelection();
     renderAudio();
 }
 
@@ -1076,6 +1312,7 @@ export function restoreActiveAudioSnapshot(audio) {
     objectTransformFrame = 0;
     pendingObjectTransforms.clear();
     previousEffectsSnapshot = null;
+    clearObjectAudioSelection();
     currentTime = 0;
     audioCache.set(activeAudioKey, normalizeAudio(audio));
     renderAudio();
@@ -1086,6 +1323,7 @@ export function setAudioAIPreviewLocked(locked) {
     isAIPreviewLocked = Boolean(locked);
     timelineRoot?.classList.toggle("is-ai-preview", isAIPreviewLocked);
     updateEffectControls();
+    renderObjectAudioPicker();
 }
 
 export function discardActiveAudioChanges() {
@@ -1111,6 +1349,7 @@ export function clearAudioCache() {
     activeAudioKey = null;
     isAIPreviewLocked = false;
     clearEffectsSelection();
+    clearObjectAudioSelection();
     renderAudio();
 }
 
@@ -1205,6 +1444,24 @@ window.addEventListener("puzzle-audiobook:canvas-object-transform", (event) => {
 window.addEventListener("puzzle-audiobook:canvas-object-added", (event) => {
     handleCanvasObjectAdded(event.detail);
 });
+window.addEventListener("puzzle-audiobook:canvas-object-selected", (event) => {
+    objectAudioChoiceRevision += 1;
+    isChangingObjectAudio = false;
+    setObjectAudioError();
+    if (
+        !event.detail?.object
+        || !activeContext
+        || event.detail?.context?.stepId !== activeContext.stepId
+    ) {
+        selectedCanvasObject = null;
+    } else {
+        selectedCanvasObject = {
+            ...event.detail.object,
+            selectionStepId: event.detail.context.stepId,
+        };
+    }
+    renderObjectAudioPicker();
+});
 window.addEventListener("puzzle-audiobook:canvas-object-deleted", (event) => {
     handleCanvasObjectDeleted(event.detail);
 });
@@ -1215,12 +1472,16 @@ window.addEventListener("puzzle-audiobook:canvas-objects-replaced", (event) => {
     handleCanvasObjectsReplaced(event.detail);
 });
 window.addEventListener("puzzle-audiobook:reset", clearAudioCache);
-window.addEventListener("puzzle-audiobook:language-change", renderAudio);
+window.addEventListener("puzzle-audiobook:language-change", () => {
+    renderAudio();
+    renderObjectAudioPicker();
+});
 window.addEventListener("puzzle-audiobook:localized-assets", (event) => {
     const assets = Array.isArray(event.detail?.assets) ? event.detail.assets : [];
     localizedAssetsByKey.clear();
     assets.forEach((asset) => localizedAssetsByKey.set(asset.asset_key, { ...asset }));
     renderAudio();
+    renderObjectAudioPicker();
 });
 
 renderAudio();

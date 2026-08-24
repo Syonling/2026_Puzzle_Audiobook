@@ -1263,6 +1263,107 @@ p {
     margin-top: 6px;
 }
 
+.object-audio-picker {
+    flex: 0 0 auto;
+    padding: 16px;
+    border: 1px solid rgba(0, 113, 227, 0.14);
+    border-radius: var(--radius-medium);
+    background: rgba(255, 255, 255, 0.66);
+}
+
+.object-audio-picker-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.object-audio-picker-heading h2 {
+    margin-top: 2px;
+    font-size: 15px;
+}
+
+.object-audio-picker-current {
+    max-width: 55%;
+    overflow: hidden;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.object-audio-picker-name {
+    margin-top: 10px;
+    color: var(--secondary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.object-audio-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 9px;
+    margin-top: 11px;
+}
+
+.object-audio-option {
+    display: flex;
+    min-width: 0;
+    min-height: 68px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 6px;
+    border: 1px solid rgba(0, 0, 0, 0.09);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--secondary);
+    font: inherit;
+    cursor: pointer;
+    transition: border-color 150ms ease, background 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.object-audio-option:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: rgba(0, 113, 227, 0.3);
+    color: var(--accent);
+}
+
+.object-audio-option.is-active {
+    border-color: rgba(0, 113, 227, 0.52);
+    background: rgba(0, 113, 227, 0.1);
+    color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.08);
+}
+
+.object-audio-option:disabled {
+    cursor: wait;
+    opacity: 0.58;
+}
+
+.object-audio-option-icon {
+    font-size: 21px;
+    line-height: 1;
+}
+
+.object-audio-option-label {
+    width: 100%;
+    overflow: hidden;
+    font-size: 10px;
+    font-weight: 650;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.object-audio-picker-error {
+    margin-top: 8px;
+    color: #d70015;
+    font-size: 11px;
+}
+
 .ai-answer-toast {
     position: fixed;
     z-index: 100;

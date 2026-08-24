@@ -3,7 +3,86 @@ from app.seed_data.questions import QUESTIONS
 from app.seed_data.stories import STORIES
 
 
+def _get_asset_audio_options(asset: dict) -> list[dict]:
+    """读取音频选项；兼容尚未带 audio_options 的旧版生成数据。"""
+    if "audio_options" in asset:
+        return asset["audio_options"]
+
+    if asset["category"] == "background" or not asset.get("audio_url"):
+        return []
+
+    return [
+        {
+            "audio_key": f"{asset['asset_key']}_default",
+            "audio_url": asset["audio_url"],
+            "is_default": True,
+            "sort_order": 0,
+            "contents": [],
+        }
+    ]
+
+
+def _validate_asset_audio_options() -> None:
+    """在写入数据库前检查普通 icon 的音频种子数据。"""
+    used_audio_keys = set()
+
+    for asset in ASSETS:
+        if asset["category"] == "background":
+            continue
+
+        audio_options = _get_asset_audio_options(asset)
+        default_options = [
+            option
+            for option in audio_options
+            if option["is_default"]
+        ]
+
+        if len(default_options) > 1:
+            raise ValueError(
+                f"Asset {asset['asset_key']} has more than one default audio"
+            )
+
+        if audio_options and len(default_options) != 1:
+            raise ValueError(
+                f"Asset {asset['asset_key']} must have exactly one default audio"
+            )
+
+        if asset.get("audio_url"):
+            if not default_options:
+                raise ValueError(
+                    f"Asset {asset['asset_key']} is missing its default audio option"
+                )
+            if default_options[0]["audio_url"] != asset["audio_url"]:
+                raise ValueError(
+                    f"Asset {asset['asset_key']} has inconsistent default audio_url"
+                )
+        elif audio_options:
+            raise ValueError(
+                f"Asset {asset['asset_key']} has audio options but no default audio_url"
+            )
+
+        sort_orders = set()
+        for option in audio_options:
+            audio_key = option["audio_key"]
+            if not audio_key:
+                raise ValueError(
+                    f"Asset {asset['asset_key']} has an empty audio_key"
+                )
+            if audio_key in used_audio_keys:
+                raise ValueError(f"Duplicate audio_key: {audio_key}")
+            used_audio_keys.add(audio_key)
+
+            sort_order = option["sort_order"]
+            if sort_order in sort_orders:
+                raise ValueError(
+                    f"Asset {asset['asset_key']} has duplicate audio sort_order"
+                )
+            sort_orders.add(sort_order)
+
+
 def seed_database(connect) -> None:
+    _validate_asset_audio_options()
+
     for story in STORIES:
         connect.execute("""
             insert or ignore into stories (
@@ -100,6 +179,77 @@ def seed_database(connect) -> None:
             content["category_translation"]
         )
         )
+
+        # 背景暂时不支持多音频，继续只使用 assets.audio_url。
+        if asset["category"] == "background":
+            continue
+
+        # 先取消数据库中这个 icon 的旧默认标记，再按当前种子数据设置默认项。
+        # 从种子文件移除的旧备选音频不会被删除。
+        connect.execute(
+            """
+            UPDATE asset_audio_options
+            SET is_default = 0
+            WHERE asset_id = ?
+            """,
+            (asset_id["id"],),
+        )
+
+        for option in _get_asset_audio_options(asset):
+            connect.execute(
+                """
+                INSERT INTO asset_audio_options (
+                    asset_id,
+                    audio_key,
+                    audio_url,
+                    is_default,
+                    sort_order
+                )
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(audio_key)
+                DO UPDATE SET
+                    asset_id = excluded.asset_id,
+                    audio_url = excluded.audio_url,
+                    is_default = excluded.is_default,
+                    sort_order = excluded.sort_order
+                """,
+                (
+                    asset_id["id"],
+                    option["audio_key"],
+                    option["audio_url"],
+                    int(option["is_default"]),
+                    option["sort_order"],
+                ),
+            )
+
+            audio_option_id = connect.execute(
+                """
+                SELECT id
+                FROM asset_audio_options
+                WHERE audio_key = ?
+                """,
+                (option["audio_key"],),
+            ).fetchone()
+
+            # 当前 contents 为空；保留写入逻辑供未来增加音频名称翻译。
+            for content in option.get("contents", []):
+                connect.execute(
+                    """
+                    INSERT INTO asset_audio_option_translations (
+                        audio_option_id,
+                        language,
+                        name
+                    )
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(audio_option_id, language)
+                    DO UPDATE SET name = excluded.name
+                    """,
+                    (
+                        audio_option_id["id"],
+                        content["language"],
+                        content["name"],
+                    ),
+                )
             
     for question in QUESTIONS:
         connect.execute("""

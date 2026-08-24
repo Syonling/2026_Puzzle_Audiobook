@@ -1,6 +1,6 @@
 """资产数据 —— 由 copy.py 自动生成,请勿手改(重跑 copy.py 会覆盖)。
 
-基于 static/images 下的 167 个 png 生成;
+基于 static/images 下的 199 个 png 生成;
 分类与翻译来自 labels.py。
 """
 
@@ -1041,6 +1041,29 @@ ASSETS = [
         ]
     },
     {
+        "asset_key": "seagulls_flying",
+        "category": "birds",
+        "image_url": "/static/images/seagulls_flying.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "飛んでいる2羽のカモメ",
+                "category_translation": "鳥"
+            },
+            {
+                "language": "zh",
+                "name": "飞翔的两只海鸥",
+                "category_translation": "鸟类"
+            },
+            {
+                "language": "en",
+                "name": "Seagulls Flying",
+                "category_translation": "birds"
+            }
+        ]
+    },
+    {
         "asset_key": "cricket",
         "category": "insects",
         "image_url": "/static/images/cricket.png",
@@ -1892,6 +1915,52 @@ ASSETS = [
         ]
     },
     {
+        "asset_key": "fleeing_crowd",
+        "category": "characters",
+        "image_url": "/static/images/fleeing_crowd.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "あわてる人々",
+                "category_translation": "人物"
+            },
+            {
+                "language": "zh",
+                "name": "慌乱的人群",
+                "category_translation": "人物"
+            },
+            {
+                "language": "en",
+                "name": "Fleeing Crowd",
+                "category_translation": "characters"
+            }
+        ]
+    },
+    {
+        "asset_key": "dark_silhouette",
+        "category": "characters",
+        "image_url": "/static/images/dark_silhouette.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "黒い人影",
+                "category_translation": "人物"
+            },
+            {
+                "language": "zh",
+                "name": "漆黑的人影",
+                "category_translation": "人物"
+            },
+            {
+                "language": "en",
+                "name": "Dark Silhouette",
+                "category_translation": "characters"
+            }
+        ]
+    },
+    {
         "asset_key": "rain",
         "category": "weather",
         "image_url": "/static/images/rain.png",
@@ -2444,6 +2513,75 @@ ASSETS = [
         ]
     },
     {
+        "asset_key": "breakwater",
+        "category": "buildings",
+        "image_url": "/static/images/breakwater.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "防波堤",
+                "category_translation": "建物"
+            },
+            {
+                "language": "zh",
+                "name": "防波堤",
+                "category_translation": "建筑"
+            },
+            {
+                "language": "en",
+                "name": "Breakwater",
+                "category_translation": "buildings"
+            }
+        ]
+    },
+    {
+        "asset_key": "closed_wooden_door",
+        "category": "buildings",
+        "image_url": "/static/images/closed_wooden_door.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "閉じた木のドア",
+                "category_translation": "建物"
+            },
+            {
+                "language": "zh",
+                "name": "关闭的木门",
+                "category_translation": "建筑"
+            },
+            {
+                "language": "en",
+                "name": "Closed Wooden Door",
+                "category_translation": "buildings"
+            }
+        ]
+    },
+    {
+        "asset_key": "half_open_wooden_door",
+        "category": "buildings",
+        "image_url": "/static/images/half_open_wooden_door.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "半開きの木のドア",
+                "category_translation": "建物"
+            },
+            {
+                "language": "zh",
+                "name": "半开的木门",
+                "category_translation": "建筑"
+            },
+            {
+                "language": "en",
+                "name": "Half Open Wooden Door",
+                "category_translation": "buildings"
+            }
+        ]
+    },
+    {
         "asset_key": "tree",
         "category": "plants",
         "image_url": "/static/images/tree.png",
@@ -2646,6 +2784,98 @@ ASSETS = [
             {
                 "language": "en",
                 "name": "Rose",
+                "category_translation": "plants"
+            }
+        ]
+    },
+    {
+        "asset_key": "seed",
+        "category": "plants",
+        "image_url": "/static/images/seed.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "タネ",
+                "category_translation": "植物"
+            },
+            {
+                "language": "zh",
+                "name": "种子",
+                "category_translation": "植物"
+            },
+            {
+                "language": "en",
+                "name": "Seed",
+                "category_translation": "plants"
+            }
+        ]
+    },
+    {
+        "asset_key": "seed_cracked",
+        "category": "plants",
+        "image_url": "/static/images/seed_cracked.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "割れたタネ",
+                "category_translation": "植物"
+            },
+            {
+                "language": "zh",
+                "name": "裂开的种子",
+                "category_translation": "植物"
+            },
+            {
+                "language": "en",
+                "name": "Seed Cracked",
+                "category_translation": "plants"
+            }
+        ]
+    },
+    {
+        "asset_key": "seed_sprouting",
+        "category": "plants",
+        "image_url": "/static/images/seed_sprouting.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "芽が出たタネ",
+                "category_translation": "植物"
+            },
+            {
+                "language": "zh",
+                "name": "发芽的种子",
+                "category_translation": "植物"
+            },
+            {
+                "language": "en",
+                "name": "Seed Sprouting",
+                "category_translation": "plants"
+            }
+        ]
+    },
+    {
+        "asset_key": "tangled_vines",
+        "category": "plants",
+        "image_url": "/static/images/tangled_vines.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "絡み合ったツル",
+                "category_translation": "植物"
+            },
+            {
+                "language": "zh",
+                "name": "交错的藤蔓",
+                "category_translation": "植物"
+            },
+            {
+                "language": "en",
+                "name": "Tangled Vines",
                 "category_translation": "plants"
             }
         ]
@@ -2968,6 +3198,52 @@ ASSETS = [
             {
                 "language": "en",
                 "name": "Sailboat",
+                "category_translation": "vehicles"
+            }
+        ]
+    },
+    {
+        "asset_key": "mail_truck",
+        "category": "vehicles",
+        "image_url": "/static/images/mail_truck.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "郵便車",
+                "category_translation": "乗り物"
+            },
+            {
+                "language": "zh",
+                "name": "邮差车",
+                "category_translation": "交通工具"
+            },
+            {
+                "language": "en",
+                "name": "Mail Truck",
+                "category_translation": "vehicles"
+            }
+        ]
+    },
+    {
+        "asset_key": "old_fishing_boat",
+        "category": "vehicles",
+        "image_url": "/static/images/old_fishing_boat.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "古い漁船",
+                "category_translation": "乗り物"
+            },
+            {
+                "language": "zh",
+                "name": "破旧的渔船",
+                "category_translation": "交通工具"
+            },
+            {
+                "language": "en",
+                "name": "Old Fishing Boat",
                 "category_translation": "vehicles"
             }
         ]
@@ -3341,6 +3617,121 @@ ASSETS = [
         ]
     },
     {
+        "asset_key": "mailbag",
+        "category": "daily_life",
+        "image_url": "/static/images/mailbag.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "郵便カバン",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "邮包",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Mailbag",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "bell",
+        "category": "daily_life",
+        "image_url": "/static/images/bell.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "鈴",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "铃铛",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Bell",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "scattered_letters",
+        "category": "daily_life",
+        "image_url": "/static/images/scattered_letters.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "散らばった手紙",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "散落的信件",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Scattered Letters",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "scattered_parcels",
+        "category": "daily_life",
+        "image_url": "/static/images/scattered_parcels.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "散らばった小包",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "散落的包裹",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Scattered Parcels",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "scattered_farm_tools",
+        "category": "daily_life",
+        "image_url": "/static/images/scattered_farm_tools.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "散らばった農具",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "散落的农具",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Scattered Farm Tools",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
         "asset_key": "sweat_drop",
         "category": "effects",
         "image_url": "/static/images/sweat_drop.png",
@@ -3543,6 +3934,75 @@ ASSETS = [
             {
                 "language": "en",
                 "name": "Bubbles",
+                "category_translation": "effects"
+            }
+        ]
+    },
+    {
+        "asset_key": "thought_bubble",
+        "category": "effects",
+        "image_url": "/static/images/thought_bubble.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "考えの吹き出し",
+                "category_translation": "エフェクト"
+            },
+            {
+                "language": "zh",
+                "name": "思考气泡",
+                "category_translation": "特效"
+            },
+            {
+                "language": "en",
+                "name": "Thought Bubble",
+                "category_translation": "effects"
+            }
+        ]
+    },
+    {
+        "asset_key": "human_footprints",
+        "category": "effects",
+        "image_url": "/static/images/human_footprints.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "人の足あと",
+                "category_translation": "エフェクト"
+            },
+            {
+                "language": "zh",
+                "name": "人类足迹",
+                "category_translation": "特效"
+            },
+            {
+                "language": "en",
+                "name": "Human Footprints",
+                "category_translation": "effects"
+            }
+        ]
+    },
+    {
+        "asset_key": "animal_footprints",
+        "category": "effects",
+        "image_url": "/static/images/animal_footprints.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "動物の足あと",
+                "category_translation": "エフェクト"
+            },
+            {
+                "language": "zh",
+                "name": "动物足迹",
+                "category_translation": "特效"
+            },
+            {
+                "language": "en",
+                "name": "Animal Footprints",
                 "category_translation": "effects"
             }
         ]
@@ -3845,5 +4305,345 @@ ASSETS = [
                 "category_translation": "background"
             }
         ]
+    },
+    {
+        "asset_key": "village_night_background",
+        "category": "background",
+        "image_url": "/static/images/village_night_background.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "夜の村の背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "zh",
+                "name": "夜晚村庄背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "en",
+                "name": "Village Night Background",
+                "category_translation": "background"
+            }
+        ]
+    },
+    {
+        "asset_key": "village_crossroad_night_background",
+        "category": "background",
+        "image_url": "/static/images/village_crossroad_night_background.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "夜の村の交差点の背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "zh",
+                "name": "夜晚村庄路口背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "en",
+                "name": "Village Crossroad Night Background",
+                "category_translation": "background"
+            }
+        ]
+    },
+    {
+        "asset_key": "dock_night_background",
+        "category": "background",
+        "image_url": "/static/images/dock_night_background.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "夜の波止場の背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "zh",
+                "name": "夜晚码头背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "en",
+                "name": "Dock Night Background",
+                "category_translation": "background"
+            }
+        ]
+    },
+    {
+        "asset_key": "dock_day_background",
+        "category": "background",
+        "image_url": "/static/images/dock_day_background.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "昼の波止場の背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "zh",
+                "name": "白天码头背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "en",
+                "name": "Dock Day Background",
+                "category_translation": "background"
+            }
+        ]
+    },
+    {
+        "asset_key": "closed_market_night_background",
+        "category": "background",
+        "image_url": "/static/images/closed_market_night_background.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "夜の閉まった市場の背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "zh",
+                "name": "夜晚打烊集市背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "en",
+                "name": "Closed Market Night Background",
+                "category_translation": "background"
+            }
+        ]
+    },
+    {
+        "asset_key": "open_sea_night_background",
+        "category": "background",
+        "image_url": "/static/images/open_sea_night_background.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "夜の海の背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "zh",
+                "name": "夜晚海面背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "en",
+                "name": "Open Sea Night Background",
+                "category_translation": "background"
+            }
+        ]
+    },
+    {
+        "asset_key": "open_sea_day_background",
+        "category": "background",
+        "image_url": "/static/images/open_sea_day_background.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "昼の海の背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "zh",
+                "name": "白天海面背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "en",
+                "name": "Open Sea Day Background",
+                "category_translation": "background"
+            }
+        ]
+    },
+    {
+        "asset_key": "rocky_coast_night_background",
+        "category": "background",
+        "image_url": "/static/images/rocky_coast_night_background.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "夜の岩の海辺の背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "zh",
+                "name": "夜晚岩岸背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "en",
+                "name": "Rocky Coast Night Background",
+                "category_translation": "background"
+            }
+        ]
+    },
+    {
+        "asset_key": "beach_night_background",
+        "category": "background",
+        "image_url": "/static/images/beach_night_background.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "夜の砂浜の背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "zh",
+                "name": "夜晚沙滩背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "en",
+                "name": "Beach Night Background",
+                "category_translation": "background"
+            }
+        ]
+    },
+    {
+        "asset_key": "old_building_interior_background",
+        "category": "background",
+        "image_url": "/static/images/old_building_interior_background.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "古い建物の中の背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "zh",
+                "name": "古旧楼内部背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "en",
+                "name": "Old Building Interior Background",
+                "category_translation": "background"
+            }
+        ]
+    },
+    {
+        "asset_key": "hillside_background",
+        "category": "background",
+        "image_url": "/static/images/hillside_background.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "山の斜面の背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "zh",
+                "name": "半山坡背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "en",
+                "name": "Hillside Background",
+                "category_translation": "background"
+            }
+        ]
+    },
+    {
+        "asset_key": "orchard_background",
+        "category": "background",
+        "image_url": "/static/images/orchard_background.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "果樹園の背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "zh",
+                "name": "果园背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "en",
+                "name": "Orchard Background",
+                "category_translation": "background"
+            }
+        ]
     }
 ]
+
+
+
+# 普通 icon 的额外备选音频统一维护在这里。
+# 现有 audio_url 会在下方自动转换为 <asset_key>_default，作为默认音频；
+# 背景不使用 audio_options，仍然只保留原来的 audio_url。
+#
+# 以后增加备选音频时，只需按下面的格式添加，不需要修改原素材字典：
+# ADDITIONAL_AUDIO_OPTIONS = {
+#     "bird": [
+#         {
+#             "audio_key": "bird_short",
+#             "audio_url": "/static/audio/bird_short.wav",
+#             "sort_order": 1,
+#         },
+#     ],
+# }
+ADDITIONAL_AUDIO_OPTIONS: dict[str, list[dict]] = {
+    "cat": [
+        {
+            "audio_key": "cat_purr",
+            "audio_url": "/static/audio/cat_purr.wav",
+            "sort_order": 1,
+        },  
+    ], 
+}
+
+
+def _attach_audio_options() -> None:
+    """为普通 icon 组装默认音频和额外备选音频种子数据。"""
+    for asset in ASSETS:
+        if asset["category"] == "background":
+            continue
+
+        audio_options = []
+        default_audio_url = asset.get("audio_url")
+
+        if default_audio_url:
+            audio_options.append(
+                {
+                    "audio_key": f"{asset['asset_key']}_default",
+                    "audio_url": default_audio_url,
+                    "is_default": True,
+                    "sort_order": 0,
+                    "contents": [],
+                }
+            )
+
+        for option in ADDITIONAL_AUDIO_OPTIONS.get(asset["asset_key"], []):
+            audio_options.append(
+                {
+                    "audio_key": option["audio_key"],
+                    "audio_url": option["audio_url"],
+                    "is_default": False,
+                    "sort_order": option["sort_order"],
+                    "contents": option.get("contents", []),
+                }
+            )
+
+        asset["audio_options"] = audio_options
+
+
+_attach_audio_options()
+del _attach_audio_options

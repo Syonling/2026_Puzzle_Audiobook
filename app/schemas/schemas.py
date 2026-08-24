@@ -114,6 +114,14 @@ class AIAnswer(BaseModel):
 
 
 # assets
+class AudioOptionResponse(BaseModel):
+    audio_key: str
+    name: str
+    audio_url: str
+    is_default: bool
+    sort_order: int
+
+
 class AssetsResponse(BaseModel):
     id: int
     asset_key: str
@@ -122,6 +130,10 @@ class AssetsResponse(BaseModel):
     category_translation: str
     image_url: str
     audio_url: str | None
+    default_audio_key: str | None
+    audio_options: list[AudioOptionResponse] = Field(
+        default_factory=list
+    )
 
 # class AssetsList(BaseModel):
 #     asset_key: str

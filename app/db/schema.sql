@@ -76,6 +76,40 @@ CREATE TABLE IF NOT EXISTS assets_translations (
     UNIQUE (asset_id, language)
 );
 
+-- 普通 icon 的可选音频。背景继续只使用 assets.audio_url，暂不进入此表。
+CREATE TABLE IF NOT EXISTS asset_audio_options (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    asset_id INTEGER NOT NULL,
+    audio_key TEXT NOT NULL UNIQUE,
+    audio_url TEXT NOT NULL,
+    is_default INTEGER NOT NULL DEFAULT 0
+        CHECK (is_default IN (0, 1)),
+    sort_order INTEGER NOT NULL DEFAULT 0
+        CHECK (sort_order >= 0),
+    FOREIGN KEY (asset_id)
+        REFERENCES assets(id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_asset_audio_options_asset_id
+ON asset_audio_options(asset_id);
+
+-- 一个 icon 最多只能有一个默认音频。
+CREATE UNIQUE INDEX IF NOT EXISTS idx_asset_audio_options_one_default
+ON asset_audio_options(asset_id)
+WHERE is_default = 1;
+
+-- 暂时不写入名称；保留此表供以后增加多语言音频名称。
+CREATE TABLE IF NOT EXISTS asset_audio_option_translations (
+    audio_option_id INTEGER NOT NULL,
+    language TEXT NOT NULL,
+    name TEXT NOT NULL,
+    FOREIGN KEY (audio_option_id)
+        REFERENCES asset_audio_options(id)
+        ON DELETE CASCADE,
+    UNIQUE (audio_option_id, language)
+);
+
 CREATE TABLE IF NOT EXISTS projects (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
