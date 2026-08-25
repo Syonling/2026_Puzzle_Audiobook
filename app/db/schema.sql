@@ -40,6 +40,8 @@ CREATE TABLE IF NOT EXISTS story_steps(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     story_id INTEGER NOT NULL,
     step_order INTEGER NOT NULL,
+    step_type TEXT NOT NULL DEFAULT 'story'
+        CHECK (step_type IN ('story', 'free_creation')),
     -- sentence TEXT NOT NULL,
     FOREIGN KEY (story_id)
         REFERENCES stories(id)
@@ -51,6 +53,7 @@ CREATE TABLE IF NOT EXISTS story_step_translations (
     story_step_id INTEGER NOT NULL,
     language TEXT NOT NULL,
     sentence TEXT NOT NULL,
+    audio_url TEXT,
     FOREIGN KEY (story_step_id)
         REFERENCES story_steps(id)
         ON DELETE CASCADE,

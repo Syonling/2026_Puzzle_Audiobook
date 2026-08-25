@@ -1899,7 +1899,7 @@ p {
     display: none;
 }
 
-.background-volume-control input {
+.background-volume-slider {
     width: 76px;
     min-width: 60px;
     accent-color: var(--accent);
@@ -1912,10 +1912,55 @@ p {
 }
 
 .background-volume-control output {
-    width: 34px;
+    display: inline-flex;
+    box-sizing: border-box;
+    width: 44px;
+    height: 24px;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 5px;
+    border: 1px solid rgba(0, 113, 227, 0.2);
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.75);
     color: var(--accent);
+    cursor: text;
     font-variant-numeric: tabular-nums;
     text-align: right;
+    user-select: none;
+}
+
+.background-volume-control output:focus-visible {
+    border-radius: 4px;
+    outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    outline-offset: 2px;
+}
+
+.background-volume-number {
+    box-sizing: border-box;
+    width: 48px;
+    height: 24px;
+    border: 1px solid rgba(0, 113, 227, 0.35);
+    border-radius: 5px;
+    background: white;
+    color: var(--accent);
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.background-volume-number:focus {
+    border-color: var(--accent);
+    outline: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.background-volume-number[hidden],
+.background-volume-unit[hidden] {
+    display: none;
+}
+
+.background-volume-unit {
+    margin-left: -4px;
+    color: var(--accent);
 }
 
 .audio-time-ruler {

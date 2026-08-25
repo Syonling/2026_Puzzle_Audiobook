@@ -43,7 +43,7 @@ QUESTIONS = [
             },
             {
                 "language": "zh",
-                "question": "请重新设计这一页。"
+                "question": "请帮我设计这一页。"
             },
             {
                 "language": "en",

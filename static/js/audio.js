@@ -4,6 +4,7 @@ const DEFAULT_DURATION = 15;
 // 保留既有 ID 以兼容已保存项目；数组顺序就是界面与后端序列化顺序。
 const TRACK_IDS = Object.freeze(["narration", "free", "effects"]);
 const LOCKED_TRACK_ID = "narration";
+const NARRATION_AUDIO_INSTANCE_ID = "story-step-narration";
 const BACKGROUND_AUDIO_INSTANCE_ID = "canvas-background";
 const FADE_PRESET_DURATION = 4;
 const REVERB_PRESET_WET = 0.62;
@@ -27,6 +28,8 @@ const effectResetButton = document.querySelector("[data-audio-effect-reset]");
 const backgroundVolumeControl = document.querySelector("[data-background-volume-control]");
 const backgroundVolumeInput = document.querySelector("[data-background-volume]");
 const backgroundVolumeOutput = document.querySelector("[data-background-volume-output]");
+const backgroundVolumeNumberInput = document.querySelector("[data-background-volume-number]");
+const backgroundVolumeUnit = document.querySelector("[data-background-volume-unit]");
 const trackMuteButtons = [...document.querySelectorAll("[data-track-mute]")];
 const objectAudioPicker = document.querySelector("[data-object-audio-picker]");
 const objectAudioCurrent = document.querySelector("[data-object-audio-current]");
@@ -64,6 +67,7 @@ let isAIPreviewLocked = false;
 let selectedClipId = null;
 let previousClipEditSnapshot = null;
 let isEditingBackgroundVolume = false;
+let isEditingBackgroundVolumeNumber = false;
 let backgroundVolumeChanged = false;
 let selectedCanvasObject = null;
 let objectAudioChoiceRevision = 0;
@@ -206,6 +210,64 @@ function getActiveAudio() {
 
 function getTrack(audio, trackId) {
     return audio?.tracks.find((track) => track.id === trackId);
+}
+
+function syncNarrationToStep(audio, context) {
+    const track = getTrack(audio, LOCKED_TRACK_ID);
+    if (!track) return;
+
+    const audioUrl = context?.audioUrl || null;
+    const existing = track.clips.find((clip) => clip.audio_url === audioUrl)
+        || track.clips[0]
+        || null;
+    track.clips = [];
+    if (!audioUrl) return;
+
+    const keepExistingSettings = existing?.audio_url === audioUrl;
+    const clip = normalizeClip({
+        ...(keepExistingSettings ? existing : {}),
+        clip_id: keepExistingSettings ? existing.clip_id : `narration-${context.stepId}`,
+        object_instance_id: NARRATION_AUDIO_INSTANCE_ID,
+        asset_key: "story_narration",
+        name: context.sentence || t("audio.narration"),
+        audio_url: audioUrl,
+        start_time: 0,
+        source_duration: keepExistingSettings ? existing.source_duration : 1,
+        trim_start: keepExistingSettings ? existing.trim_start : 0,
+        trim_end: keepExistingSettings ? existing.trim_end : 1,
+        duration: keepExistingSettings ? existing.duration : 1,
+        volume: keepExistingSettings ? existing.volume : 1,
+        pan: 0,
+    });
+    if (!clip) return;
+    track.clips.push(clip);
+
+    const expectedKey = getAudioKey(context.projectId ?? null, context.stepId);
+    loadAudioBuffer(audioUrl).then((buffer) => {
+        if (activeAudioKey !== expectedKey || !track.clips.includes(clip)) return;
+        const sourceDuration = Math.max(0.1, buffer.duration);
+        clip.source_duration = sourceDuration;
+        if (!keepExistingSettings) {
+            clip.trim_start = 0;
+            clip.trim_end = sourceDuration;
+            clip.duration = sourceDuration;
+        } else {
+            clip.trim_start = Math.min(clip.trim_start, sourceDuration - 0.1);
+            clip.trim_end = Math.min(sourceDuration, Math.max(clip.trim_start + 0.1, clip.trim_end));
+            clip.duration = clip.trim_end - clip.trim_start;
+        }
+        const activeAudio = getActiveAudio();
+        if (activeAudio) {
+            activeAudio.duration = Math.max(
+                DEFAULT_DURATION,
+                ...activeAudio.tracks.flatMap((item) => item.clips)
+                    .map((item) => item.start_time + item.duration),
+            );
+        }
+        renderAudio();
+    }).catch(() => {
+        if (status && activeAudioKey === expectedKey) status.textContent = t("audio.fileFailed");
+    });
 }
 
 function setAssistantTool(tool) {
@@ -498,16 +560,65 @@ function updateBackgroundVolumeControl() {
     const clip = getSelectedBackgroundClip();
     if (!backgroundVolumeControl) return;
     backgroundVolumeControl.hidden = !clip;
-    if (!clip) return;
+    if (!clip) {
+        isEditingBackgroundVolumeNumber = false;
+        if (backgroundVolumeNumberInput) backgroundVolumeNumberInput.hidden = true;
+        if (backgroundVolumeUnit) backgroundVolumeUnit.hidden = true;
+        if (backgroundVolumeOutput) backgroundVolumeOutput.hidden = false;
+        return;
+    }
     const volume = Math.min(2, Math.max(0, Number(clip.volume) || 0));
     if (backgroundVolumeInput && !isEditingBackgroundVolume) {
         backgroundVolumeInput.value = String(volume);
     }
     if (backgroundVolumeInput) backgroundVolumeInput.disabled = isAIPreviewLocked;
+    if (backgroundVolumeNumberInput) {
+        backgroundVolumeNumberInput.disabled = isAIPreviewLocked;
+        if (!isEditingBackgroundVolumeNumber) {
+            backgroundVolumeNumberInput.value = String(Math.round(volume * 100));
+        }
+    }
     if (backgroundVolumeOutput) {
         backgroundVolumeOutput.value = `${Math.round(volume * 100)}%`;
         backgroundVolumeOutput.textContent = backgroundVolumeOutput.value;
     }
+}
+
+function beginBackgroundVolumeNumberEdit() {
+    const clip = getSelectedBackgroundClip();
+    if (
+        !clip
+        || isAIPreviewLocked
+        || !backgroundVolumeNumberInput
+        || !backgroundVolumeOutput
+    ) return;
+    isEditingBackgroundVolumeNumber = true;
+    backgroundVolumeNumberInput.value = String(
+        Math.round(Math.min(2, Math.max(0, Number(clip.volume) || 0)) * 100),
+    );
+    backgroundVolumeOutput.hidden = true;
+    backgroundVolumeNumberInput.hidden = false;
+    if (backgroundVolumeUnit) backgroundVolumeUnit.hidden = false;
+    backgroundVolumeNumberInput.focus();
+    backgroundVolumeNumberInput.select();
+}
+
+function finishBackgroundVolumeNumberEdit({ commit = true } = {}) {
+    if (!isEditingBackgroundVolumeNumber) return;
+    if (commit && backgroundVolumeNumberInput) {
+        const percentage = Number(backgroundVolumeNumberInput.value);
+        if (Number.isFinite(percentage)) {
+            setSelectedBackgroundVolume(
+                Math.min(200, Math.max(0, percentage)) / 100,
+            );
+            commitBackgroundVolumeEdit();
+        }
+    }
+    isEditingBackgroundVolumeNumber = false;
+    if (backgroundVolumeNumberInput) backgroundVolumeNumberInput.hidden = true;
+    if (backgroundVolumeUnit) backgroundVolumeUnit.hidden = true;
+    if (backgroundVolumeOutput) backgroundVolumeOutput.hidden = false;
+    updateBackgroundVolumeControl();
 }
 
 function beginBackgroundVolumeEdit() {
@@ -740,7 +851,8 @@ function createClipElement(clip, duration, trackId) {
             beginTrimDrag(event, clip, button);
         });
     }
-    button.append(label, trimHandle);
+    if (isLockedTrack) button.append(trimHandle);
+    else button.append(label, trimHandle);
     return button;
 }
 
@@ -1394,7 +1506,10 @@ async function handleCanvasObjectsReplaced(detail) {
     currentTime = 0;
     audio.tracks.forEach((track) => {
         track.clips = track.clips.filter(
-            (clip) => !clip.object_instance_id,
+            (clip) => (
+                !clip.object_instance_id
+                || clip.object_instance_id === NARRATION_AUDIO_INSTANCE_ID
+            ),
         );
     });
     renderAudio();
@@ -1424,9 +1539,10 @@ export function activateDraftAudio(context) {
     clearObjectAudioSelection();
     currentTime = 0;
     const key = getAudioKey(null, context.stepId);
-    if (!audioCache.has(key)) audioCache.set(key, createEmptyAudio());
     activeContext = { ...context, projectId: null };
+    if (!audioCache.has(key)) audioCache.set(key, createEmptyAudio());
     activeAudioKey = key;
+    syncNarrationToStep(audioCache.get(key), activeContext);
     renderAudio();
 }
 
@@ -1449,9 +1565,10 @@ export function showRemoteAudioLoading(context, projectId) {
 export function restoreRemoteAudio(context, projectId, audio) {
     resetTrackMutes();
     const key = getAudioKey(projectId, context.stepId);
-    audioCache.set(key, normalizeAudio(audio));
     activeContext = { ...context, projectId };
+    audioCache.set(key, normalizeAudio(audio));
     activeAudioKey = key;
+    syncNarrationToStep(audioCache.get(key), activeContext);
     currentTime = 0;
     clearEffectsSelection();
     clearObjectAudioSelection();
@@ -1602,6 +1719,28 @@ backgroundVolumeInput?.addEventListener("input", (event) => {
 });
 backgroundVolumeInput?.addEventListener("change", commitBackgroundVolumeEdit);
 backgroundVolumeInput?.addEventListener("pointercancel", commitBackgroundVolumeEdit);
+backgroundVolumeOutput?.addEventListener("dblclick", (event) => {
+    event.preventDefault();
+    beginBackgroundVolumeNumberEdit();
+});
+backgroundVolumeOutput?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    beginBackgroundVolumeNumberEdit();
+});
+backgroundVolumeNumberInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        finishBackgroundVolumeNumberEdit();
+    } else if (event.key === "Escape") {
+        event.preventDefault();
+        finishBackgroundVolumeNumberEdit({ commit: false });
+        backgroundVolumeOutput?.focus();
+    }
+});
+backgroundVolumeNumberInput?.addEventListener("blur", () => {
+    finishBackgroundVolumeNumberEdit();
+});
 playhead?.addEventListener("pointerdown", beginPlayheadDrag);
 editor?.addEventListener("pointerdown", (event) => {
     if (
@@ -1675,6 +1814,14 @@ window.addEventListener("puzzle-audiobook:canvas-objects-replaced", (event) => {
     handleCanvasObjectsReplaced(event.detail);
 });
 window.addEventListener("puzzle-audiobook:reset", clearAudioCache);
+window.addEventListener("puzzle-audiobook:localized-story", (event) => {
+    if (!activeContext || event.detail?.stepId !== activeContext.stepId) return;
+    activeContext = { ...activeContext, ...event.detail };
+    const audio = getActiveAudio();
+    if (!audio) return;
+    syncNarrationToStep(audio, activeContext);
+    renderAudio();
+});
 window.addEventListener("puzzle-audiobook:language-change", () => {
     renderAudio();
     renderObjectAudioPicker();

@@ -83,7 +83,9 @@ def get_story_steps(
             stp.id,
             stp.story_id,
             stp.step_order,
-            stpt.sentence
+            stp.step_type,
+            stpt.sentence,
+            stpt.audio_url
         FROM story_steps AS stp
         JOIN story_step_translations AS stpt
             ON stpt.story_step_id = stp.id

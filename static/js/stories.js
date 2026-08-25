@@ -84,6 +84,7 @@ function selectStep(stepOrder) {
             stepId: step.id,
             stepOrder: step.step_order,
             sentence: step.sentence,
+            audioUrl: step.audio_url ?? null,
             totalSteps: storyState.steps.length,
         },
     }));
@@ -270,6 +271,7 @@ async function reloadLocalizedStories() {
                     stepId: selectedStep.id,
                     stepOrder: selectedStep.step_order,
                     sentence: selectedStep.sentence,
+                    audioUrl: selectedStep.audio_url ?? null,
                 },
             }));
         }

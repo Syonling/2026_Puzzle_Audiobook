@@ -30,4 +30,5 @@ BACKGROUND_DESCRIPTIONS: dict[str, str] = {
     "old_building_interior_background": "the inside of an old building with a wooden spiral staircase at one side, a bright upper window, aged plaster walls, and a wide open wooden floor",
     "hillside_background": "partway up a grassy hillside with one broad gentle diagonal slope, a hinted valley below, and open usable grass on the slope",
     "orchard_background": "an orchard with rows of small round fruit trees receding into the distance and wide open grassy ground between them; no buildings",
+    "lighthouse_interior_background": "a lighthouse on a rocky coast with a tall white tower, a small attached building, a few rocks and low shrubs, and open sea in the distance",
 }

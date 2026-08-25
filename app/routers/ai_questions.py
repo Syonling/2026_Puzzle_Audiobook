@@ -47,6 +47,7 @@ async def get_answer(request:AIQuestionRequest,
             SELECT
                 stpt.story_step_id,
                 stp.step_order,
+                stp.step_type,
                 stpt.sentence
             FROM story_steps AS stp
             JOIN story_step_translations AS stpt
@@ -92,6 +93,7 @@ async def get_answer(request:AIQuestionRequest,
         previous_steps = [
             {
                 "step_order": row["step_order"],
+                "step_type": row["step_type"],
                 "sentence": row["sentence"],
             }
             for row in story_steps[:-1]
@@ -102,6 +104,7 @@ async def get_answer(request:AIQuestionRequest,
             "previous_steps": previous_steps,
             "current_step": {
                 "step_order": current_step["step_order"],
+                "step_type": current_step["step_type"],
                 "sentence": current_step["sentence"],
             },
         }

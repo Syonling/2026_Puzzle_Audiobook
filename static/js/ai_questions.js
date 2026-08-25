@@ -11,7 +11,7 @@ import {
     getActiveAudioSnapshot,
     restoreActiveAudioSnapshot,
     setAudioAIPreviewLocked,
-} from "./audio.js?v=20260825-1";
+} from "./audio.js?v=20260825-4";
 import {
     acceptAIPreview,
     beginAIPreview,

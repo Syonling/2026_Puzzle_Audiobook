@@ -3,6 +3,69 @@ from app.seed_data.questions import QUESTIONS
 from app.seed_data.stories import STORIES
 
 
+def _normalize_story_step(step: str | dict, step_type: str) -> dict:
+    """Keep old string steps compatible while supporting narration metadata."""
+    if isinstance(step, str):
+        return {
+            "sentence": step,
+            "audio_url": None,
+            "step_type": step_type,
+        }
+    return {
+        "sentence": step["sentence"],
+        "audio_url": step.get("audio_url"),
+        "step_type": step_type,
+    }
+
+
+def _validate_story_steps() -> None:
+    for story in STORIES:
+        free_creation_orders = set(
+            story.get("free_creation_step_orders", [])
+        )
+        available_step_orders = {
+            step_order
+            for content in story["contents"]
+            for step_order, _ in enumerate(content["steps"], start=1)
+        }
+        invalid_free_creation_orders = (
+            free_creation_orders - available_step_orders
+        )
+        if invalid_free_creation_orders:
+            raise ValueError(
+                "Free-creation step does not exist: "
+                f"story={story['slug']}, "
+                f"steps={sorted(invalid_free_creation_orders)}"
+            )
+        for content in story["contents"]:
+            for step_order, raw_step in enumerate(content["steps"], start=1):
+                step_type = (
+                    "free_creation"
+                    if step_order in free_creation_orders
+                    else "story"
+                )
+                step = _normalize_story_step(raw_step, step_type)
+                if step["step_type"] not in {"story", "free_creation"}:
+                    raise ValueError(
+                        "Invalid story step type: "
+                        f"story={story['slug']}, step={step_order}"
+                    )
+                if step["step_type"] == "free_creation" and step["audio_url"]:
+                    raise ValueError(
+                        "Free-creation step cannot have narration audio: "
+                        f"story={story['slug']}, step={step_order}"
+                    )
+                if (
+                    content["language"] == "zh"
+                    and step["step_type"] == "story"
+                    and not step["audio_url"]
+                ):
+                    raise ValueError(
+                        "Chinese story step is missing narration audio: "
+                        f"story={story['slug']}, step={step_order}"
+                    )
+
+
 def _get_asset_audio_options(asset: dict) -> list[dict]:
     """读取音频选项；兼容尚未带 audio_options 的旧版生成数据。"""
     if "audio_options" in asset:
@@ -81,9 +144,13 @@ def _validate_asset_audio_options() -> None:
 
 
 def seed_database(connect) -> None:
+    _validate_story_steps()
     _validate_asset_audio_options()
 
     for story in STORIES:
+        free_creation_orders = set(
+            story.get("free_creation_step_orders", [])
+        )
         connect.execute("""
             insert or ignore into stories (
                         slug,
@@ -114,31 +181,47 @@ def seed_database(connect) -> None:
                 content["description"]
             ))
 
-            for step_order, sentence in enumerate(content["steps"], start=1):
+            for step_order, raw_step in enumerate(content["steps"], start=1):
+                step_type = (
+                    "free_creation"
+                    if step_order in free_creation_orders
+                    else "story"
+                )
+                step = _normalize_story_step(raw_step, step_type)
                 connect.execute("""
-                    insert or ignore into story_steps(
+                    insert into story_steps(
                                 story_id,
-                                step_order
+                                step_order,
+                                step_type
                                 )
-                    values (?,?)
+                    values (?,?,?)
+                    on conflict(story_id, step_order)
+                    do update set step_type = excluded.step_type
                 """,
                 (
                     story_row["id"],
                     step_order,
+                    step["step_type"],
                 )
                 )
                 story_step_id = connect.execute("select id from story_steps where story_id = ? and step_order = ?",(story_row["id"], step_order)).fetchone()
                 connect.execute("""
-                    insert or ignore into story_step_translations(
+                    insert into story_step_translations(
                                 story_step_id,
                                 language,
-                                sentence)
-                    values (?,?,?)
+                                sentence,
+                                audio_url)
+                    values (?,?,?,?)
+                    on conflict(story_step_id, language)
+                    do update set
+                        sentence = excluded.sentence,
+                        audio_url = excluded.audio_url
                 """,
                 (
                     story_step_id["id"],
                     content["language"],
-                    sentence
+                    step["sentence"],
+                    step["audio_url"],
                 )
                 )
 

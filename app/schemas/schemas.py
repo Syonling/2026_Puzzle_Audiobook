@@ -23,7 +23,9 @@ class StoryStepResponse(BaseModel):
     id : int
     story_id : int
     step_order : int
+    step_type: Literal["story", "free_creation"]
     sentence : str
+    audio_url: str | None
 
 class StoryDetail(StorySummary):
     story_text: str

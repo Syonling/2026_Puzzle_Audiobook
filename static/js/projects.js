@@ -21,7 +21,7 @@ import {
     showRemoteAudioLoading,
     storeRemoteAudio,
     syncAudioToCanvasObjects,
-} from "./audio.js?v=20260825-1";
+} from "./audio.js?v=20260825-4";
 
 const getDefaultProjectTitle = () => t("project.unnamed");
 const saveButton = document.querySelector("[data-save-project]");

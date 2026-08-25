@@ -34,11 +34,6 @@ class AudioOptionContext(TypedDict):
     is_default: bool
 
 
-class IconContext(TypedDict):
-    asset_key: str
-    audio_options: list[AudioOptionContext]
-
-
 class BackgroundContext(TypedDict):
     background_key: str
     scene_description: str
@@ -46,7 +41,8 @@ class BackgroundContext(TypedDict):
 
 
 class AssetContext(TypedDict):
-    icons: list[IconContext]
+    icons: list[str]
+    audio_options_by_asset: dict[str, list[AudioOptionContext]]
     backgrounds: list[BackgroundContext]
     audio_effects: list[dict[str, str]]
 
@@ -90,14 +86,8 @@ def get_asset_context(language: Language = "zh") -> AssetContext:
                 }
             )
 
-        icons: list[IconContext] = [
-            {
-                "asset_key": row["asset_key"],
-                "audio_options": audio_options_by_asset.get(
-                    row["asset_key"],
-                    [],
-                ),
-            }
+        icons = [
+            row["asset_key"]
             for row in asset_rows
             if row["category"] != "background"
         ]
@@ -127,6 +117,7 @@ def get_asset_context(language: Language = "zh") -> AssetContext:
 
         context: AssetContext = {
             "icons": icons,
+            "audio_options_by_asset": audio_options_by_asset,
             "backgrounds": backgrounds,
             "audio_effects": [
                 {
@@ -142,7 +133,7 @@ def get_asset_context(language: Language = "zh") -> AssetContext:
             "audio_icons=%d | backgrounds=%d | elapsed_ms=%.1f",
             language,
             len(icons),
-            sum(bool(item["audio_options"]) for item in icons),
+            len(audio_options_by_asset),
             len(backgrounds),
             (time.perf_counter() - started_at) * 1000,
         )
@@ -165,15 +156,15 @@ def get_asset_context(language: Language = "zh") -> AssetContext:
 def get_assets_list() -> tuple[list[str], list[str], list[str]]:
     """Compatibility helper for code that still expects the old three lists."""
     context = get_asset_context()
-    icon_list = [item["asset_key"] for item in context["icons"]]
+    icon_list = list(context["icons"])
     background_list = [
         item["background_key"]
         for item in context["backgrounds"]
     ]
     audio_icon_list = [
-        item["asset_key"]
-        for item in context["icons"]
-        if item["audio_options"]
+        asset_key
+        for asset_key in context["icons"]
+        if asset_key in context["audio_options_by_asset"]
     ]
     return icon_list, background_list, audio_icon_list
 

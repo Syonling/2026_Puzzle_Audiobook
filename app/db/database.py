@@ -22,11 +22,46 @@ def get_db() -> Iterator[sqlite3.Connection] :
     finally:
         connect.close()
 
+
+def _migrate_story_narration_columns(
+    connect: sqlite3.Connection,
+) -> None:
+    """Add narration columns to an existing database without deleting data."""
+    story_step_columns = {
+        row["name"]
+        for row in connect.execute(
+            "PRAGMA table_info(story_steps)"
+        ).fetchall()
+    }
+    if "step_type" not in story_step_columns:
+        connect.execute(
+            """
+            ALTER TABLE story_steps
+            ADD COLUMN step_type TEXT NOT NULL DEFAULT 'story'
+                CHECK (step_type IN ('story', 'free_creation'))
+            """
+        )
+
+    translation_columns = {
+        row["name"]
+        for row in connect.execute(
+            "PRAGMA table_info(story_step_translations)"
+        ).fetchall()
+    }
+    if "audio_url" not in translation_columns:
+        connect.execute(
+            """
+            ALTER TABLE story_step_translations
+            ADD COLUMN audio_url TEXT
+            """
+        )
+
 def init_db() -> None :
     connect = create_connection(DB_DIR)
 
     try:
         connect.executescript(SCHEMA_SQL)
+        _migrate_story_narration_columns(connect)
         seed_database(connect)
         connect.commit()
     except sqlite3.DatabaseError:

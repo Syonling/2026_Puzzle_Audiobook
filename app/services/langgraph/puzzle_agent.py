@@ -15,6 +15,11 @@ from app.services.langgraph.audio_effect_presets import (
     expand_audio_effects,
 )
 from app.services.langgraph.context_builder import llm, get_asset_context
+from app.services.langgraph.decorative_asset_rules import (
+    DECORATIVE_ASSET_RULES,
+    PlacementRole,
+    available_decorative_rules,
+)
 from app.services.langgraph.prompts import ROUTER_PROMPT, canvas_design_prompt, sound_analysis_prompt
 
 logger = logging.getLogger(__name__)
@@ -113,7 +118,7 @@ class CanvasObjectDesign(BaseModel):
         le=60,
         description=(
             "Return start_offset_seconds between 0 and 60 only when asset_key "
-            "exists in available_audio_icons, otherwise return null."
+            "has options in available_audio_options, otherwise return null."
         ),
     )
     selected_audio_key: str | None = Field(
@@ -129,6 +134,22 @@ class CanvasObjectDesign(BaseModel):
         description=(
             "Return at most two exact effect keys, and return an empty list "
             "when selected_audio_key is null."
+        ),
+    )
+    anchor_object_index: int | None = Field(
+        default=None,
+        ge=0,
+        le=11,
+        description=(
+            "For a decorative asset, return the zero-based objects index of "
+            "its non-decorative subject; otherwise return null."
+        ),
+    )
+    placement_role: PlacementRole = Field(
+        default="independent",
+        description=(
+            "Return independent for normal scene objects. For decorative "
+            "assets, describe placement relative to anchor_object_index."
         ),
     )
 
@@ -183,6 +204,7 @@ class AIInput(TypedDict):
 
 class StoryStepContext(TypedDict):
     step_order: int
+    step_type: Literal["story", "free_creation"]
     sentence: str
 
 
@@ -198,31 +220,30 @@ class State(TypedDict):
 
 
 def _asset_rules(asset_context):
-    icon_keys = {
-        item["asset_key"]
-        for item in asset_context["icons"]
-    }
+    icon_keys = set(asset_context["icons"])
     background_by_key = {
         item["background_key"]: item
         for item in asset_context["backgrounds"]
     }
     audio_by_asset = {
-        item["asset_key"]: {
+        asset_key: {
             option["audio_key"]: option
-            for option in item["audio_options"]
+            for option in options
         }
-        for item in asset_context["icons"]
+        for asset_key, options
+        in asset_context["audio_options_by_asset"].items()
     }
     default_audio_by_asset = {
-        item["asset_key"]: next(
+        asset_key: next(
             (
                 option["audio_key"]
-                for option in item["audio_options"]
+                for option in options
                 if option["is_default"]
             ),
             None,
         )
-        for item in asset_context["icons"]
+        for asset_key, options
+        in asset_context["audio_options_by_asset"].items()
     }
     return (
         icon_keys,
@@ -243,6 +264,102 @@ def _validated_audio_key(
         return selected_audio_key
     return default_audio_by_asset.get(asset_key)
 
+
+def _apply_decorative_layout(canvas: dict[str, object]) -> None:
+    """Attach decorative symbols to valid subjects and replace LLM coordinates."""
+    objects = canvas["objects"]
+    positioned_objects = []
+    kept_indices = []
+
+    for object_index, obj in enumerate(objects):
+        rule = DECORATIVE_ASSET_RULES.get(obj["asset_key"])
+        if rule is None:
+            kept_indices.append(object_index)
+            continue
+        anchor_index = obj["anchor_object_index"]
+        if (
+            anchor_index is not None
+            and anchor_index != object_index
+            and 0 <= anchor_index < len(objects)
+            and objects[anchor_index]["asset_key"]
+            not in DECORATIVE_ASSET_RULES
+        ):
+            kept_indices.append(object_index)
+
+    output_index_by_original = {
+        original_index: output_index
+        for output_index, original_index in enumerate(kept_indices)
+    }
+
+    for object_index, obj in enumerate(objects):
+        rule = DECORATIVE_ASSET_RULES.get(obj["asset_key"])
+        if rule is None:
+            obj["anchor_object_index"] = None
+            obj["placement_role"] = "independent"
+            positioned_objects.append(obj)
+            continue
+
+        anchor_index = obj["anchor_object_index"]
+        anchor_is_valid = (
+            anchor_index is not None
+            and anchor_index != object_index
+            and 0 <= anchor_index < len(objects)
+            and objects[anchor_index]["asset_key"]
+            not in DECORATIVE_ASSET_RULES
+        )
+        if not anchor_is_valid:
+            logger.warning(
+                "Dropping unanchored decorative asset | asset_key=%s | "
+                "object_index=%s | anchor_object_index=%s",
+                obj["asset_key"],
+                object_index,
+                anchor_index,
+            )
+            continue
+
+        anchor = objects[anchor_index]
+        obj["anchor_object_index"] = output_index_by_original[anchor_index]
+        placement_role = obj["placement_role"]
+        if placement_role == "independent":
+            placement_role = rule["default_placement"]
+
+        obj["placement_role"] = placement_role
+        obj["scale"] = round(
+            min(max(anchor["scale"] * rule["relative_scale"], 0.35), 0.9),
+            2,
+        )
+        anchor_half_size = 48 * anchor["scale"]
+        object_half_size = 48 * obj["scale"]
+        gap = 12
+
+        if placement_role == "above_head":
+            x = anchor["x"] + anchor_half_size * 0.25
+            y = anchor["y"] - anchor_half_size - object_half_size - gap
+        elif placement_role == "upper_left":
+            x = anchor["x"] - anchor_half_size * 0.75
+            y = anchor["y"] - anchor_half_size * 0.75 - object_half_size
+        elif placement_role == "beside":
+            direction = -1 if anchor["x"] > 720 else 1
+            x = anchor["x"] + direction * (
+                anchor_half_size + object_half_size + gap
+            )
+            y = anchor["y"]
+        else:
+            x = anchor["x"] + anchor_half_size * 0.75
+            y = anchor["y"] - anchor_half_size * 0.75 - object_half_size
+
+        obj["x"] = round(
+            min(max(x, object_half_size), 1040 - object_half_size),
+            1,
+        )
+        obj["y"] = round(
+            min(max(y, object_half_size), 650 - object_half_size),
+            1,
+        )
+        positioned_objects.append(obj)
+
+    canvas["objects"] = positioned_objects
+
 # Nodes
 async def llm_call_1(state: State):
     """Analyze sentence and return icon_keys, background_key, and reasoning."""
@@ -262,6 +379,7 @@ async def llm_call_1(state: State):
         "current_canvas": state["input"]["canvas"],
         "current_audio": state["input"].get("audio", {}),
         "available_icons": asset_context["icons"],
+        "available_audio_options": asset_context["audio_options_by_asset"],
         "available_backgrounds": asset_context["backgrounds"],
         "available_audio_effects": asset_context["audio_effects"],
     }
@@ -364,8 +482,12 @@ async def llm_call_2(state: State):
         "current_canvas": state["input"]["canvas"],
         "current_audio": state["input"].get("audio", {}),
         "available_icons": asset_context["icons"],
+        "available_audio_options": asset_context["audio_options_by_asset"],
         "available_backgrounds": asset_context["backgrounds"],
         "available_audio_effects": asset_context["audio_effects"],
+        "decorative_asset_rules": available_decorative_rules(
+            allowed_icon_keys
+        ),
         "canvas_rules": {
             "width": 1040,
             "height": 650,
@@ -450,6 +572,8 @@ async def llm_call_2(state: State):
             min(max(obj["y"], half_size), 650 - half_size),
             1,
         )
+
+    _apply_decorative_layout(canvas)
 
     background = (
         background_by_key.get(canvas["background_key"])
@@ -553,6 +677,7 @@ async def main(
                 "previous_steps": [],
                 "current_step": {
                     "step_order": 1,
+                    "step_type": "story",
                     "sentence": sentence,
                 },
             },
