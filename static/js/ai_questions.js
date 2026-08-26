@@ -1,22 +1,22 @@
-import { request } from "./api.js?v=20260825-5";
-import { getLanguage, t } from "./i18n.js?v=20260825-5";
+import { request } from "./api.js?v=20260826-2";
+import { getLanguage, t } from "./i18n.js?v=20260826-2";
 import {
     getActiveCanvasContext,
     getActiveCanvasSnapshot,
     replaceActiveCanvasFromAI,
     restoreActiveCanvasSnapshot,
     setCanvasAIPreviewLocked,
-} from "./canvas.js?v=20260825-5";
+} from "./canvas.js?v=20260826-2";
 import {
     getActiveAudioSnapshot,
     restoreActiveAudioSnapshot,
     setAudioAIPreviewLocked,
-} from "./audio.js?v=20260825-5";
+} from "./audio.js?v=20260826-2";
 import {
     acceptAIPreview,
     beginAIPreview,
     rejectAIPreview,
-} from "./projects.js?v=20260825-5";
+} from "./projects.js?v=20260826-2";
 
 const form = document.querySelector("[data-ai-question-form]");
 const input = document.querySelector("[data-ai-question-input]");

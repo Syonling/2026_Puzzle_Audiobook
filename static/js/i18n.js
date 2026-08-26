@@ -43,7 +43,7 @@ const messages = {
         "audio.unsupported": "当前浏览器不支持音频时间轴播放", "audio.fileFailed": "音频文件加载失败",
         "audio.preparing": "正在准备音频…", "audio.playFailed": "音频播放失败", "audio.loading": "正在加载音轨…",
         "audioPicker.eyebrow": "Icon Audio", "audioPicker.heading": "素材声音", "audioPicker.options": "素材音频备选",
-        "audioPicker.iconAndAudio": "{icon} · 当前：{audio}", "audioPicker.silent": "无声音", "audioPicker.switching": "正在切换音频…", "audioPicker.failed": "音频切换失败", "audioPicker.empty": "选择有声音的画布素材后，可在这里更换声音。",
+        "audioPicker.iconAndAudio": "{icon} · 当前：{audio}", "audioPicker.backgroundAndAudio": "{icon} · 当前背景音：{audio}", "audioPicker.silent": "无声音", "audioPicker.switching": "正在切换音频…", "audioPicker.failed": "音频切换失败", "audioPicker.empty": "选择有声音的画布素材或背景后，可在这里更换声音。",
         "library.heading": "素材库", "library.search": "搜索素材", "library.categories": "素材分类", "library.all": "全部", "library.pagination": "素材分页", "library.page": "第 {page} 页",
         "library.recommended": "推荐素材", "library.closeRecommended": "关闭 AI 推荐", "library.loading": "正在加载素材…",
         "library.empty": "暂无素材", "library.noMatch": "没有找到匹配的素材", "library.invalid": "素材数据格式不正确",
@@ -73,6 +73,7 @@ const messages = {
 };
 
 Object.assign(messages.ja, {
+    "audioPicker.backgroundAndAudio":"{icon}・現在の背景音：{audio}",
     "audio.split":"再生ヘッド位置でナレーションを分割",
     "ai.acceptDesign":"デザインを採用","ai.rejectDesign":"元に戻す",
     "ai.error":"AIリクエストに失敗しました","ai.retry":"再試行",
@@ -93,6 +94,7 @@ Object.assign(messages.ja, {
 });
 
 Object.assign(messages.en, {
+    "audioPicker.backgroundAndAudio":"{icon} · Current background audio: {audio}",
     "audio.split":"Split narration at playhead",
     "ai.acceptDesign":"Accept Design","ai.rejectDesign":"Reject Design",
     "ai.error":"AI request failed","ai.retry":"Retry",

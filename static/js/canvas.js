@@ -1,4 +1,4 @@
-import { t } from "./i18n.js?v=20260825-5";
+import { t } from "./i18n.js?v=20260826-2";
 
 const EMPTY_CANVAS = Object.freeze({
     objects: [],
@@ -469,6 +469,33 @@ function selectObject(instanceId) {
     }));
 }
 
+function selectBackground() {
+    const canvas = getActiveCanvas();
+    selectedObjectId = null;
+    document.querySelectorAll(".canvas-object.is-selected").forEach(
+        (element) => element.classList.remove("is-selected"),
+    );
+    const backgroundAsset = localizedAssetsByKey.get(canvas?.background_key);
+    const background = canvas?.background_key
+        ? {
+            ...(backgroundAsset || {}),
+            ...(canvas.background || {}),
+            instance_id: BACKGROUND_AUDIO_INSTANCE_ID,
+            asset_key: canvas.background_key,
+            label: backgroundAsset?.name || canvas.background_key,
+            image_url: canvas.background?.image_url || backgroundAsset?.image_url || null,
+            selected_audio_key: canvas.background?.selected_audio_key ?? null,
+            audio_url: canvas.background?.audio_url ?? null,
+        }
+        : null;
+    window.dispatchEvent(new CustomEvent("puzzle-audiobook:canvas-background-selected", {
+        detail: {
+            context: activeContext ? { ...activeContext } : null,
+            background,
+        },
+    }));
+}
+
 function addAssetToCanvas(asset, clientX, clientY) {
     const canvas = getActiveCanvas();
     const paper = document.querySelector("[data-canvas-paper]");
@@ -522,11 +549,16 @@ function applyBackgroundToCanvas(asset) {
     ) return;
 
     notifyHistoryCheckpoint();
+    const audioOptions = Array.isArray(asset.audio_options) ? asset.audio_options : [];
+    const defaultAudio = audioOptions.find(
+        (option) => option.audio_key === asset.default_audio_key,
+    ) || audioOptions.find((option) => option.is_default === true) || null;
     canvas.background_key = asset.asset_key;
     canvas.background = {
         asset_key: asset.asset_key,
         image_url: asset.image_url,
-        audio_url: asset.audio_url ?? null,
+        selected_audio_key: defaultAudio?.audio_key ?? asset.default_audio_key ?? null,
+        audio_url: defaultAudio?.audio_url ?? asset.audio_url ?? null,
     };
     selectObject(null);
     renderActiveCanvas();
@@ -540,10 +572,12 @@ function applyBackgroundToCanvas(asset) {
                 asset_key: asset.asset_key,
                 label: asset.name,
                 image_url: asset.image_url,
-                audio_url: asset.audio_url ?? null,
+                selected_audio_key: defaultAudio?.audio_key ?? asset.default_audio_key ?? null,
+                audio_url: defaultAudio?.audio_url ?? asset.audio_url ?? null,
             },
         },
     }));
+    selectBackground();
 }
 
 function removeBackgroundFromCanvas() {
@@ -563,6 +597,7 @@ function removeBackgroundFromCanvas() {
             background: null,
         },
     }));
+    selectBackground();
 }
 
 export function activateDraftCanvas(context) {
@@ -699,6 +734,7 @@ export function replaceActiveCanvasFromAI(aiCanvas, options = {}) {
         ? {
             asset_key: backgroundKey,
             image_url: aiCanvas.background.image_url,
+            selected_audio_key: aiCanvas.background.selected_audio_key ?? null,
             audio_url: aiCanvas.background.audio_url ?? null,
             audio_enabled: aiCanvas.background.audio_enabled === true,
             start_offset_seconds:
@@ -734,6 +770,7 @@ export function replaceActiveCanvasFromAI(aiCanvas, options = {}) {
                 asset_key: backgroundKey,
                 label: backgroundKey,
                 image_url: background.image_url,
+                selected_audio_key: background.selected_audio_key,
                 audio_url: background.audio_url,
                 audio_enabled: background.audio_enabled,
                 start_offset_seconds: background.start_offset_seconds,
@@ -815,7 +852,8 @@ paper?.addEventListener("pointerdown", (event) => {
         || event.target.matches("[data-canvas-object-layer]")
         || event.target.closest("[data-canvas-empty]")
     ) {
-        selectObject(null);
+        if (getActiveCanvas()?.background_key) selectBackground();
+        else selectObject(null);
     }
 });
 document.querySelector("[data-canvas-background-remove]")?.addEventListener("click", (event) => {
@@ -856,6 +894,20 @@ window.addEventListener("puzzle-audiobook:canvas-object-audio-choice-applied", (
     if (!object) return;
     object.selected_audio_key = event.detail.audioKey ?? null;
     object.audio_url = event.detail.audioUrl ?? null;
+    notifyCanvasChanged();
+});
+window.addEventListener("puzzle-audiobook:canvas-background-audio-choice-applied", (event) => {
+    if (
+        !activeContext
+        || event.detail?.context?.stepId !== activeContext.stepId
+    ) return;
+    const canvas = getActiveCanvas();
+    if (!canvas?.background_key || !canvas.background) return;
+    canvas.background.selected_audio_key = event.detail.audioKey ?? null;
+    canvas.background.audio_url = event.detail.audioUrl ?? null;
+    if ("audio_enabled" in canvas.background) {
+        canvas.background.audio_enabled = Boolean(event.detail.audioUrl);
+    }
     notifyCanvasChanged();
 });
 window.addEventListener("puzzle-audiobook:localized-story", (event) => {

@@ -1,4 +1,4 @@
-import { t } from "./i18n.js?v=20260825-5";
+import { t } from "./i18n.js?v=20260826-2";
 
 const DEFAULT_DURATION = 15;
 // 保留既有 ID 以兼容已保存项目；数组顺序就是界面与后端序列化顺序。
@@ -354,6 +354,10 @@ function getObjectClip(instanceId) {
     ) || null;
 }
 
+function isBackgroundSelection(object = selectedCanvasObject) {
+    return object?.instance_id === BACKGROUND_AUDIO_INSTANCE_ID;
+}
+
 function getAudioOptionsForObject(object) {
     if (!object?.asset_key) return [];
     const asset = localizedAssetsByKey.get(object.asset_key);
@@ -430,7 +434,11 @@ function renderObjectAudioPicker() {
     const selectedName = selectedOption?.name || t("audioPicker.silent");
     if (objectAudioCurrent) objectAudioCurrent.textContent = selectedName;
     if (objectAudioName) {
-        objectAudioName.textContent = t("audioPicker.iconAndAudio", {
+        objectAudioName.textContent = t(
+            isBackgroundSelection(object)
+                ? "audioPicker.backgroundAndAudio"
+                : "audioPicker.iconAndAudio",
+        {
             icon: iconName,
             audio: selectedName,
         });
@@ -449,7 +457,10 @@ function setObjectAudioError(message = "") {
 }
 
 function notifyCanvasObjectAudioChoice(object, option) {
-    window.dispatchEvent(new CustomEvent("puzzle-audiobook:canvas-object-audio-choice-applied", {
+    const eventName = isBackgroundSelection(object)
+        ? "puzzle-audiobook:canvas-background-audio-choice-applied"
+        : "puzzle-audiobook:canvas-object-audio-choice-applied";
+    window.dispatchEvent(new CustomEvent(eventName, {
         detail: {
             context: activeContext ? { ...activeContext } : null,
             instanceId: object.instance_id,
@@ -482,7 +493,8 @@ async function changeSelectedObjectAudio(option) {
         ) return;
 
         const audio = getActiveAudio();
-        const track = getTrack(audio, "effects");
+        const isBackground = isBackgroundSelection(object);
+        const track = getTrack(audio, isBackground ? "free" : "effects");
         if (!audio || !track) return;
         notifyHistoryCheckpoint();
         haltPlayback();
@@ -498,13 +510,15 @@ async function changeSelectedObjectAudio(option) {
             const duration = Math.max(0.1, buffer.duration);
             const canvasWidth = document.querySelector("[data-canvas-paper]")
                 ?.getBoundingClientRect().width;
-            const derivedAudio = deriveAudioFromObject(object, canvasWidth);
+            const derivedAudio = isBackground
+                ? { volume: 1, pan: 0 }
+                : deriveAudioFromObject(object, canvasWidth);
             const clip = existingClip || normalizeClip({
                 clip_id: createInstanceId(),
                 object_instance_id: object.instance_id,
                 asset_id: object.asset_id,
                 asset_key: object.asset_key,
-                start_time: track.clips.reduce(
+                start_time: isBackground ? 0 : track.clips.reduce(
                     (maximum, candidate) => Math.max(maximum, candidate.start_time + candidate.duration),
                     0,
                 ),
@@ -1936,6 +1950,29 @@ window.addEventListener("puzzle-audiobook:canvas-object-selected", (event) => {
     } else {
         selectedCanvasObject = {
             ...event.detail.object,
+            selectionStepId: event.detail.context.stepId,
+        };
+    }
+    renderObjectAudioPicker();
+    setAssistantTool(
+        selectedCanvasObject && getAudioOptionsForObject(selectedCanvasObject).length > 0
+            ? "audio"
+            : "ai",
+    );
+});
+window.addEventListener("puzzle-audiobook:canvas-background-selected", (event) => {
+    objectAudioChoiceRevision += 1;
+    isChangingObjectAudio = false;
+    setObjectAudioError();
+    if (
+        !event.detail?.background
+        || !activeContext
+        || event.detail?.context?.stepId !== activeContext.stepId
+    ) {
+        selectedCanvasObject = null;
+    } else {
+        selectedCanvasObject = {
+            ...event.detail.background,
             selectionStepId: event.detail.context.stepId,
         };
     }
