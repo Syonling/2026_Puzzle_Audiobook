@@ -35,6 +35,8 @@ function normalizeCanvas(canvas) {
                     ...object,
                     instance_id: object.instance_id || createInstanceId(),
                     object_id: objectId,
+                    // source 会随 canvas JSON 保存并在恢复后继续用于实验日志。
+                    source: object.source === "AI" ? "AI" : "manual",
                     image_url: object.image_url || object.imageUrl
                         || (objectId ? `/static/images/${objectId}.png` : ""),
                     scale: Number(object.scale) || 1,
@@ -826,6 +828,7 @@ export function replaceActiveCanvasFromAI(aiCanvas, options = {}) {
                 effects: background.effects,
             } : null,
             responseToken: options.responseToken ?? null,
+            suggestionId: options.suggestionId ?? null,
         },
     }));
 }

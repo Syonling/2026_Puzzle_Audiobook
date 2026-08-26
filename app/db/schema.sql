@@ -2,6 +2,9 @@ CREATE TABLE IF NOT EXISTS users(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,  -- 不允许重复
     password_hash TEXT NOT NULL,
+    participant_id TEXT UNIQUE,
+    pair_id TEXT,
+    condition TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -175,3 +178,97 @@ CREATE TABLE IF NOT EXISTS question_translations (
         ON DELETE CASCADE,
     UNIQUE (question_id, language)
 );
+
+-- 前端原始交互事件。user_id 用于数据归属，participant_id 用于实验分析。
+CREATE TABLE IF NOT EXISTS interaction_events (
+    event_id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    session_id TEXT NOT NULL,
+    suggestion_id TEXT,
+    pair_id TEXT,
+    participant_id TEXT NOT NULL,
+    condition TEXT,
+    story_id INTEGER,
+    page_id INTEGER,
+    client_timestamp TEXT NOT NULL,
+    received_at TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    target_id TEXT,
+    target_type TEXT,
+    source TEXT,
+    action_origin TEXT,
+    event_data_json TEXT NOT NULL DEFAULT '{}',
+    FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_interaction_events_user_id
+ON interaction_events(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_interaction_events_session_id
+ON interaction_events(session_id);
+
+CREATE INDEX IF NOT EXISTS idx_interaction_events_event_type
+ON interaction_events(event_type);
+
+CREATE INDEX IF NOT EXISTS idx_interaction_events_story_page
+ON interaction_events(story_id, page_id);
+
+CREATE INDEX IF NOT EXISTS idx_interaction_events_suggestion_id
+ON interaction_events(suggestion_id);
+
+-- canvas_snapshot 事件的查询友好副本；原始 event_data 仍完整保留。
+CREATE TABLE IF NOT EXISTS canvas_snapshots (
+    event_id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    session_id TEXT NOT NULL,
+    story_id INTEGER,
+    page_id INTEGER,
+    snapshot_type TEXT NOT NULL,
+    snapshot_timestamp TEXT NOT NULL,
+    icons_json TEXT NOT NULL DEFAULT '[]',
+    audio_clips_json TEXT NOT NULL DEFAULT '[]',
+    canvas_json TEXT NOT NULL DEFAULT '{}',
+    audio_json TEXT NOT NULL DEFAULT '{}',
+    received_at TEXT NOT NULL,
+    FOREIGN KEY (event_id)
+        REFERENCES interaction_events(event_id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_canvas_snapshots_user_page
+ON canvas_snapshots(user_id, story_id, page_id);
+
+-- 后端 LLM 调用日志，通过 suggestion_id 与前端后续事件关联。
+CREATE TABLE IF NOT EXISTS ai_suggestions (
+    suggestion_id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    session_id TEXT,
+    story_id INTEGER,
+    page_id INTEGER,
+    request_timestamp TEXT NOT NULL,
+    response_timestamp TEXT,
+    display_timestamp TEXT,
+    status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'completed', 'failed')),
+    mode TEXT,
+    ai_input_json TEXT NOT NULL,
+    ai_output_json TEXT,
+    suggested_icons_json TEXT,
+    suggested_positions_json TEXT,
+    suggested_audio_json TEXT,
+    error_message TEXT,
+    FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_suggestions_user_id
+ON ai_suggestions(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_ai_suggestions_session_id
+ON ai_suggestions(session_id);

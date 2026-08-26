@@ -17,6 +17,7 @@ import {
     beginAIPreview,
     rejectAIPreview,
 } from "./projects.js?v=20260826-7";
+import { getEventSessionId } from "./logger.js?v=20260826-7";
 
 const form = document.querySelector("[data-ai-question-form]");
 const input = document.querySelector("[data-ai-question-input]");
@@ -180,7 +181,10 @@ function beginCanvasAIPreview(aiCanvas, responseToken, suggestionId) {
     setCanvasAIPreviewLocked(true);
     setAudioAIPreviewLocked(true);
     try {
-        replaceActiveCanvasFromAI(aiCanvas, { responseToken });
+        replaceActiveCanvasFromAI(aiCanvas, {
+            responseToken,
+            suggestionId,
+        });
         aiPreviewTransaction.previewCanvas = cloneSnapshot(getActiveCanvasSnapshot());
     } catch (error) {
         rejectCurrentAIPreview({ closeAnswer: false });
@@ -308,7 +312,10 @@ form?.addEventListener("submit", async (event) => {
     try {
         const result = await request("/ai/getanswer", {
             method: "POST",
-            headers: { "X-Suggestion-ID": suggestionId },
+            headers: {
+                "X-Suggestion-ID": suggestionId,
+                "X-Session-ID": getEventSessionId(),
+            },
             body: JSON.stringify({
                 user_request: userRequest,
                 story_id: canvasContext.storyId,

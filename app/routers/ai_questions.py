@@ -1,6 +1,9 @@
+import json
 import logging
 import sqlite3
 import time
+import uuid
+from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Header
@@ -9,6 +12,7 @@ from app.schemas.schemas import AIQuestion, AIAnswer, AIQuestionRequest
 # from app.services.llm import llm_api
 from app.services.langgraph.puzzle_agent import router_workflow
 from app.core.security import get_current_user
+from app.services.user_event_files import safely_append_user_event_records
 
 router = APIRouter(prefix="/ai",tags=["ai_questions"])
 logger = logging.getLogger(__name__)
@@ -38,7 +42,17 @@ async def get_answer(request:AIQuestionRequest,
                         Header(
                             default="zh",
                             alias="X-Language",
-                        ), current_user = Depends(get_current_user), db:sqlite3.Connection=Depends(get_db)):
+                        ),
+                     x_suggestion_id: str | None = Header(
+                         default=None,
+                         alias="X-Suggestion-ID",
+                     ),
+                     x_session_id: str | None = Header(
+                         default=None,
+                         alias="X-Session-ID",
+                     ),
+                     current_user = Depends(get_current_user),
+                     db:sqlite3.Connection=Depends(get_db)):
     started_at = time.perf_counter()
     ai_input = {}
     try:
@@ -179,9 +193,139 @@ async def get_answer(request:AIQuestionRequest,
         len(previous_steps),
     )
 
+    suggestion_id = x_suggestion_id or str(uuid.uuid4())
+    if not suggestion_id.strip() or len(suggestion_id) > 128:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid X-Suggestion-ID",
+        )
+    if x_session_id is not None and (
+        not x_session_id.strip() or len(x_session_id) > 128
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid X-Session-ID",
+        )
+
+    request_timestamp = datetime.now(timezone.utc).isoformat()
+    ai_input_json = json.dumps(
+        ai_input,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    ai_log_started = False
+    try:
+        existing_suggestion = db.execute(
+            """
+            SELECT user_id
+            FROM ai_suggestions
+            WHERE suggestion_id = ?
+            """,
+            (suggestion_id,),
+        ).fetchone()
+        if existing_suggestion is not None:
+            logger.warning(
+                "Duplicate AI suggestion ID | suggestion_id=%s | "
+                "user_id=%s",
+                suggestion_id,
+                current_user["id"],
+            )
+            raise HTTPException(
+                status_code=409,
+                detail="Suggestion ID already exists",
+            )
+        db.execute(
+            """
+            INSERT INTO ai_suggestions (
+                suggestion_id,
+                user_id,
+                session_id,
+                story_id,
+                page_id,
+                request_timestamp,
+                status,
+                ai_input_json
+            )
+            VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+            """,
+            (
+                suggestion_id,
+                current_user["id"],
+                x_session_id,
+                request.story_id,
+                current_step["story_step_id"],
+                request_timestamp,
+                ai_input_json,
+            ),
+        )
+        db.commit()
+        ai_log_started = True
+    except HTTPException:
+        raise
+    except sqlite3.DatabaseError as error:
+        db.rollback()
+        logger.exception(
+            "Failed to start AI suggestion log | suggestion_id=%s | "
+            "user_id=%s",
+            suggestion_id,
+            current_user["id"],
+        )
+        # Experiment logging must not prevent the existing AI feature.
+
+    safely_append_user_event_records(
+        current_user["id"],
+        [{
+            "record_type": "ai_request",
+            "suggestion_id": suggestion_id,
+            "session_id": x_session_id,
+            "user_id": current_user["id"],
+            "story_id": request.story_id,
+            "page_id": current_step["story_step_id"],
+            "request_timestamp": request_timestamp,
+            "ai_input": ai_input,
+        }],
+    )
+
     try:
         state = await router_workflow.ainvoke({"input": ai_input})
     except Exception as error:
+        response_timestamp = datetime.now(timezone.utc).isoformat()
+        try:
+            if not ai_log_started:
+                raise RuntimeError("AI database log was not started")
+            db.execute(
+                """
+                UPDATE ai_suggestions
+                SET status = 'failed',
+                    response_timestamp = ?,
+                    error_message = ?
+                WHERE suggestion_id = ?
+                  AND user_id = ?
+                """,
+                (
+                    response_timestamp,
+                    str(error)[:2000],
+                    suggestion_id,
+                    current_user["id"],
+                ),
+            )
+            db.commit()
+        except (sqlite3.DatabaseError, RuntimeError):
+            db.rollback()
+            logger.exception(
+                "Failed to finish AI error log | suggestion_id=%s",
+                suggestion_id,
+            )
+        safely_append_user_event_records(
+            current_user["id"],
+            [{
+                "record_type": "ai_error",
+                "suggestion_id": suggestion_id,
+                "user_id": current_user["id"],
+                "response_timestamp": response_timestamp,
+                "error": str(error),
+            }],
+        )
         logger.exception(
             "AI workflow failed | user_id=%s | story_id=%s | "
             "step_order=%s | language=%s | elapsed_ms=%.1f",
@@ -459,13 +603,120 @@ async def get_answer(request:AIQuestionRequest,
                 ),
             }
 
+    response_timestamp = datetime.now(timezone.utc).isoformat()
+    output = state["output"]
+    if state["decision"] == "suggestion":
+        suggested_icons = output.get("icon_keys", [])
+        suggested_positions = []
+        suggested_audio = output.get("audio_suggestions", [])
+    else:
+        objects = output.get("objects", [])
+        suggested_icons = [
+            obj.get("asset_key")
+            for obj in objects
+            if obj.get("asset_key")
+        ]
+        suggested_positions = [
+            {
+                key: obj.get(key)
+                for key in ("asset_key", "x", "y", "scale", "rotation")
+            }
+            for obj in objects
+        ]
+        suggested_audio = [
+            {
+                key: obj.get(key)
+                for key in (
+                    "asset_key",
+                    "selected_audio_key",
+                    "audio_url",
+                    "start_offset_seconds",
+                    "effects",
+                )
+            }
+            for obj in objects
+            if obj.get("selected_audio_key")
+        ]
+        background_output = output.get("background")
+        if not isinstance(background_output, dict):
+            background_output = {}
+        if background_output.get("selected_audio_key"):
+            suggested_audio.append({
+                "asset_key": background_output.get("asset_key"),
+                "selected_audio_key": background_output.get(
+                    "selected_audio_key"
+                ),
+                "audio_url": background_output.get("audio_url"),
+                "start_offset_seconds": background_output.get(
+                    "start_offset_seconds"
+                ),
+                "effects": background_output.get("effects", {}),
+            })
+
+    try:
+        if not ai_log_started:
+            raise RuntimeError("AI database log was not started")
+        db.execute(
+            """
+            UPDATE ai_suggestions
+            SET status = 'completed',
+                response_timestamp = ?,
+                mode = ?,
+                ai_output_json = ?,
+                suggested_icons_json = ?,
+                suggested_positions_json = ?,
+                suggested_audio_json = ?
+            WHERE suggestion_id = ?
+              AND user_id = ?
+            """,
+            (
+                response_timestamp,
+                state["decision"],
+                json.dumps(output, ensure_ascii=False),
+                json.dumps(suggested_icons, ensure_ascii=False),
+                json.dumps(suggested_positions, ensure_ascii=False),
+                json.dumps(suggested_audio, ensure_ascii=False),
+                suggestion_id,
+                current_user["id"],
+            ),
+        )
+        db.commit()
+    except (
+        sqlite3.DatabaseError,
+        RuntimeError,
+        TypeError,
+        ValueError,
+    ):
+        db.rollback()
+        logger.exception(
+            "Failed to complete AI suggestion log | suggestion_id=%s",
+            suggestion_id,
+        )
+        # The AI result remains valid even when optional experiment logging fails.
+
+    safely_append_user_event_records(
+        current_user["id"],
+        [{
+            "record_type": "ai_response",
+            "suggestion_id": suggestion_id,
+            "session_id": x_session_id,
+            "user_id": current_user["id"],
+            "story_id": request.story_id,
+            "page_id": current_step["story_step_id"],
+            "response_timestamp": response_timestamp,
+            "mode": state["decision"],
+            "ai_output": output,
+        }],
+    )
+
     logger.info(
         "AI request completed | user_id=%s | story_id=%s | step_order=%s | "
-        "mode=%s | elapsed_ms=%.1f",
+        "mode=%s | suggestion_id=%s | elapsed_ms=%.1f",
         current_user["id"],
         request.story_id,
         request.step_order,
         state["decision"],
+        suggestion_id,
         (time.perf_counter() - started_at) * 1000,
     )
 

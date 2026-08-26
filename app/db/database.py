@@ -13,6 +13,8 @@ def create_connection(db_dir) -> sqlite3.Connection:
     # 以下两条默认开启
     connect.row_factory = sqlite3.Row
     connect.execute("PRAGMA foreign_keys = ON")
+    # Logging writes are short, but may overlap an AI response update.
+    connect.execute("PRAGMA busy_timeout = 5000")
     return connect
 
 def get_db() -> Iterator[sqlite3.Connection] :

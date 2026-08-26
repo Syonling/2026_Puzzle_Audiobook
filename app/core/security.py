@@ -15,7 +15,12 @@ def get_current_user(
 
     user = db.execute(
         """
-        SELECT users.id, users.username
+        SELECT
+            users.id,
+            users.username,
+            users.participant_id,
+            users.pair_id,
+            users.condition
         FROM sessions
         JOIN users
             ON users.id = sessions.user_id

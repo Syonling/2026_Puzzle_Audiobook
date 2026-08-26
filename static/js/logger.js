@@ -34,6 +34,10 @@ if (!sessionId) {
     sessionStorage.setItem(SESSION_KEY, sessionId);
 }
 
+export function getEventSessionId() {
+    return sessionId;
+}
+
 function readJSON(storage, key, fallback) {
     try {
         const parsed = JSON.parse(storage.getItem(key));
@@ -94,6 +98,11 @@ export function track(eventType, data = {}) {
         target_id: data.target_id ?? null,
         target_type: data.target_type ?? null,
         source: data.source ?? null,
+        action_origin: data.action_origin ?? null,
+        suggestion_id: data.suggestion_id
+            ?? data.event_data?.suggestion_id
+            ?? data.event_data?.suggestionId
+            ?? null,
         event_data: clone(data.event_data || {}),
     };
     queue.push(event);
@@ -144,7 +153,12 @@ function snapshot(snapshotType, extra = {}) {
 
 async function flush({ beacon = false } = {}) {
     if (flushInFlight || queue.length === 0 || Date.now() < nextFlushAt) return;
-    const batch = queue.slice(0, 50);
+    const participantId = getIdentity().participant_id;
+    if (participantId === null || participantId === undefined) return;
+    const batch = queue.filter(
+        (event) => String(event.participant_id) === String(participantId),
+    ).slice(0, 50);
+    if (batch.length === 0) return;
     const body = JSON.stringify({ events: batch });
     if (beacon && navigator.sendBeacon) {
         navigator.sendBeacon(ENDPOINT, new Blob([body], { type: "application/json" }));
@@ -165,7 +179,17 @@ async function flush({ beacon = false } = {}) {
                 ? result.accepted_event_ids
                 : batch.map((event) => event.event_id),
         );
-        queue = queue.filter((event) => !accepted.has(event.event_id));
+        const rejected = new Set(
+            Array.isArray(result.rejected_events)
+                ? result.rejected_events
+                    .map((event) => event?.event_id)
+                    .filter(Boolean)
+                : [],
+        );
+        queue = queue.filter(
+            (event) => !accepted.has(event.event_id)
+                && !rejected.has(event.event_id),
+        );
         persistQueue();
         nextFlushAt = 0;
     } catch {
@@ -207,6 +231,7 @@ function handleObjectTransform(detail) {
         target_id: object.instance_id,
         target_type: "icon",
         source: objectSources.get(object.instance_id) || "manual",
+        action_origin: "user",
     };
     if (before.x !== after.x || before.y !== after.y) {
         track("icon_move", { ...common, event_data: {
@@ -232,7 +257,7 @@ function audioClips(audio) {
     )) || [];
 }
 
-function handleAudioChange() {
+function handleAudioChange(event) {
     const current = getActiveAudioSnapshot();
     if (!current) return;
     if (!previousAudio) {
@@ -244,14 +269,18 @@ function handleAudioChange() {
     afterById.forEach((clip, clipId) => {
         const before = beforeById.get(clipId);
         const source = objectSources.get(clip.object_instance_id) || "manual";
+        const suggestionId = objectSuggestionIds.get(clip.object_instance_id)
+            || event?.detail?.suggestionId
+            || null;
         const common = {
             target_id: clipId,
             target_type: "audio",
             source,
+            action_origin: event?.detail?.actionOrigin ?? "user",
             event_data: {
                 icon_id: clip.object_instance_id,
                 audio_id: clip.audio_key || clipId,
-                suggestion_id: objectSuggestionIds.get(clip.object_instance_id) || null,
+                suggestion_id: suggestionId,
             },
         };
         if (!before) {
@@ -291,9 +320,13 @@ function handleAudioChange() {
             target_id: clipId,
             target_type: "audio",
             source: objectSources.get(clip.object_instance_id) || "manual",
+            action_origin: event?.detail?.actionOrigin ?? "user",
             event_data: {
                 icon_id: clip.object_instance_id,
                 audio_id: clip.audio_key || clipId,
+                suggestion_id: objectSuggestionIds.get(
+                    clip.object_instance_id
+                ) || event?.detail?.suggestionId || null,
             },
         });
     });
@@ -316,6 +349,17 @@ function endCurrentPage(reason) {
 
 window.addEventListener("puzzle-audiobook:step-change", (event) => {
     const next = event.detail;
+    const isSamePage =
+        pageContext?.storyId === next?.storyId
+        && pageContext?.stepId === next?.stepId;
+
+    // 语言刷新、项目状态重新解析等流程可能再次发布当前页面信息。
+    // 这不是一次真实的页面切换，不重复记录 page_start/page_switch。
+    if (isSamePage) {
+        pageContext = next ? { ...next } : pageContext;
+        return;
+    }
+
     if (pageContext?.stepId !== next?.stepId) {
         const previous = pageContext ? { ...pageContext } : null;
         endCurrentPage("page_switch");
@@ -365,6 +409,7 @@ window.addEventListener("puzzle-audiobook:canvas-object-added", (event) => {
         target_id: object.instance_id,
         target_type: "icon",
         source,
+        action_origin: "user",
         event_data: {
             icon_id: object.instance_id,
             asset_id: object.asset_id,
@@ -393,17 +438,84 @@ window.addEventListener("puzzle-audiobook:canvas-object-transform", (event) => {
 window.addEventListener("puzzle-audiobook:canvas-object-deleted", (event) => {
     const object = event.detail?.object;
     if (!object) return;
+    const suggestionId = objectSuggestionIds.get(object.instance_id) || null;
     track("icon_delete", {
         target_id: object.instance_id,
         target_type: "icon",
         source: objectSources.get(object.instance_id) || "manual",
-        event_data: { state: objectState(object), asset_id: object.asset_id },
+        action_origin: "user",
+        suggestion_id: suggestionId,
+        event_data: {
+            state: objectState(object),
+            asset_id: object.asset_id,
+            suggestion_id: suggestionId,
+        },
     });
-    objectSources.delete(object.instance_id);
-    objectSuggestionIds.delete(object.instance_id);
+    // Audio deletion is dispatched synchronously by another listener. Keep
+    // attribution available until that linked event has been recorded.
+    queueMicrotask(() => {
+        objectSources.delete(object.instance_id);
+        objectSuggestionIds.delete(object.instance_id);
+    });
     rememberCanvas();
 });
+function backgroundState(background) {
+    if (!background) return null;
+    return {
+        asset_key: background.asset_key ?? null,
+        selected_audio_key: background.selected_audio_key ?? null,
+        audio_url: background.audio_url ?? null,
+    };
+}
+
+function trackBackgroundChange(before, after, {
+    source = "manual",
+    actionOrigin = "user",
+    suggestionId = null,
+} = {}) {
+    const beforeState = backgroundState(before);
+    const afterState = backgroundState(after);
+    if (JSON.stringify(beforeState) === JSON.stringify(afterState)) return;
+    track("background_change", {
+        target_id: afterState?.asset_key ?? beforeState?.asset_key ?? null,
+        target_type: "background",
+        source,
+        action_origin: actionOrigin,
+        suggestion_id: suggestionId,
+        event_data: {
+            before: beforeState,
+            after: afterState,
+            suggestion_id: suggestionId,
+        },
+    });
+}
+
+window.addEventListener("puzzle-audiobook:canvas-background-changed", (event) => {
+    trackBackgroundChange(
+        previousCanvas?.background ?? null,
+        event.detail?.background ?? null,
+        {
+            source: event.detail?.background?.source || "manual",
+            actionOrigin: event.detail?.actionOrigin || "user",
+            suggestionId: event.detail?.suggestionId
+                || (event.detail?.background?.source === "AI"
+                    ? currentSuggestionId
+                    : null),
+        },
+    );
+    rememberCanvas();
+});
+
 window.addEventListener("puzzle-audiobook:canvas-objects-replaced", (event) => {
+    trackBackgroundChange(
+        previousCanvas?.background ?? null,
+        event.detail?.background ?? null,
+        {
+            source: "AI",
+            actionOrigin: "ai_preview",
+            suggestionId: event.detail?.suggestionId || currentSuggestionId,
+        },
+    );
     event.detail?.objects?.forEach((object) => {
         objectSources.set(object.instance_id, "AI");
         if (currentSuggestionId) objectSuggestionIds.set(object.instance_id, currentSuggestionId);
@@ -433,6 +545,11 @@ window.addEventListener("puzzle-audiobook:ai-event", (event) => {
         target_id: detail.suggestionId || null,
         target_type: "ai_suggestion",
         source: "AI",
+        action_origin: (
+            detail.eventType === "ai_accepted"
+            || detail.eventType === "ai_rejected"
+        ) ? "user" : "system",
+        suggestion_id: detail.suggestionId || null,
         event_data: detail,
     });
 });
@@ -472,6 +589,16 @@ window.addEventListener("puzzle-audiobook:history-applied", (event) => {
     });
 });
 window.addEventListener("puzzle-audiobook:authenticated", (event) => {
+    const identity = getIdentity();
+    queue.forEach((queuedEvent) => {
+        if (queuedEvent.session_id !== sessionId) return;
+        if (queuedEvent.participant_id !== null
+            && queuedEvent.participant_id !== undefined) return;
+        queuedEvent.participant_id = identity.participant_id;
+        queuedEvent.pair_id = identity.pair_id;
+        queuedEvent.condition = identity.condition;
+    });
+    persistQueue();
     track("login_succeeded", {
         target_id: event.detail?.user?.id ?? null,
         target_type: "participant",

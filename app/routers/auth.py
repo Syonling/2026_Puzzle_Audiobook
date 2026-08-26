@@ -7,9 +7,24 @@ from datetime import datetime, timedelta, timezone
 from app.db.database import get_db
 from app.schemas.schemas import UserCreate, UserFeedback
 from app.core.security import get_current_user
+from app.services.user_event_files import safely_append_user_event_records
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _user_payload(user) -> dict:
+    return {
+        "id": user["id"],
+        "username": user["username"],
+        "participant_id": (
+            user["participant_id"]
+            if user["participant_id"] is not None
+            else user["id"]
+        ),
+        "pair_id": user["pair_id"],
+        "condition": user["condition"],
+    }
 # pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # @router.post("/register", response_model=UserFeedback, status_code=201)
@@ -38,13 +53,25 @@ def register(user:UserCreate, db:sqlite3.Connection=Depends(get_db)):
         logger.exception("Username already exist")
         raise HTTPException(status_code=409, detail="Username already exist") from e
     
-    # row = db.execute("select * form users where id = ?", (cursor.lastrowid,)).fetchone()
+    row = db.execute(
+        """
+        SELECT id, username, participant_id, pair_id, condition
+        FROM users
+        WHERE id = ?
+        """,
+        (cursor.lastrowid,),
+    ).fetchone()
+    safely_append_user_event_records(
+        row["id"],
+        [{
+            "record_type": "account_created",
+            "user_id": row["id"],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }],
+    )
     return {
         "message": "Register success",
-        "user": {
-            "id": cursor.lastrowid,
-            "username": user.username,
-        },
+        "user": _user_payload(row),
     }
 @router.post("/login")
 def login(user:UserCreate, response:Response, db:sqlite3.Connection=Depends(get_db)):
@@ -70,6 +97,14 @@ def login(user:UserCreate, response:Response, db:sqlite3.Connection=Depends(get_
         (row["id"], token, expires_at),
     )
     db.commit()
+    safely_append_user_event_records(
+        row["id"],
+        [{
+            "record_type": "login",
+            "user_id": row["id"],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }],
+    )
     response.set_cookie(
         key="session_token",
         value=token,
@@ -80,10 +115,7 @@ def login(user:UserCreate, response:Response, db:sqlite3.Connection=Depends(get_
 
     return {
         "message": "Login success",
-        "user": {
-            "id": row["id"],
-            "username": row["username"],
-        },
+        "user": _user_payload(row),
     }
 
 @router.get("/me")
@@ -91,10 +123,7 @@ def get_me(
     current_user=Depends(get_current_user),
 ):
     return {
-        "user": {
-            "id": current_user["id"],
-            "username": current_user["username"],
-        }
+        "user": _user_payload(current_user)
     }
 
 @router.post("/logout")
@@ -117,4 +146,3 @@ def logout(
     )
 
     return {"message": "Logout success"}
-

@@ -1013,10 +1013,14 @@ function formatTime(seconds) {
     return minutes + ":" + String(remainder).padStart(2, "0");
 }
 
-function notifyAudioChanged() {
+function notifyAudioChanged(actionOrigin = "user", suggestionId = null) {
     if (!activeContext) return;
     window.dispatchEvent(new CustomEvent("puzzle-audiobook:audio-change", {
-        detail: { ...activeContext },
+        detail: {
+            ...activeContext,
+            actionOrigin,
+            suggestionId,
+        },
     }));
 }
 
@@ -1780,7 +1784,11 @@ async function handleCanvasObjectAdded(detail) {
     track.clips.push(clip);
     renderAudio();
     renderObjectAudioPicker();
-    notifyAudioChanged();
+    notifyAudioChanged(
+        detail.actionOrigin
+        ?? (detail.responseToken ? "ai_preview" : "user"),
+        detail.suggestionId ?? null,
+    );
 
     const expectedKey = activeAudioKey;
     const mutationRevision = audioMutationRevision;
@@ -1806,7 +1814,10 @@ async function handleCanvasObjectAdded(detail) {
         }
         renderAudio();
         renderObjectAudioPicker();
-        notifyAudioChanged();
+        notifyAudioChanged(
+            "system_sync",
+            detail.suggestionId ?? null,
+        );
     } catch {
         if (status && activeAudioKey === expectedKey) status.textContent = t("audio.fileFailed");
     }
@@ -1842,10 +1853,19 @@ async function handleCanvasBackgroundChanged(detail) {
             },
             trackId: "free",
             audioProperties: { volume: 1, pan: 0 },
+            actionOrigin: detail.actionOrigin
+                ?? (detail.responseToken ? "ai_preview" : "user"),
+            suggestionId: detail.suggestionId ?? null,
         });
     } else {
         renderAudio();
-        if (removedPrevious) notifyAudioChanged();
+        if (removedPrevious) {
+            notifyAudioChanged(
+                detail.actionOrigin
+                ?? (detail.responseToken ? "ai_preview" : "user"),
+                detail.suggestionId ?? null,
+            );
+        }
     }
 }
 
@@ -1902,6 +1922,8 @@ async function handleCanvasObjectsReplaced(detail) {
                 context: detail.context,
                 canvasWidth: detail.canvasWidth,
                 object,
+                actionOrigin: "ai_preview",
+                suggestionId: detail.suggestionId ?? null,
             });
         }
     }
@@ -1909,8 +1931,13 @@ async function handleCanvasObjectsReplaced(detail) {
         context: detail.context,
         background: detail.background ?? null,
         responseToken: detail.responseToken,
+        actionOrigin: "ai_preview",
+        suggestionId: detail.suggestionId ?? null,
     });
-    notifyAudioChanged();
+    notifyAudioChanged(
+        "ai_preview",
+        detail.suggestionId ?? null,
+    );
 }
 
 export function activateDraftAudio(context) {

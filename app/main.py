@@ -8,7 +8,15 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import STATIC_DIR, settings
 from app.db.database import init_db
 from app.core.logging_config import setup_logging
-from app.routers import system, auth, stories, ai_questions, project, assets
+from app.routers import (
+    system,
+    auth,
+    stories,
+    ai_questions,
+    project,
+    assets,
+    logs,
+)
 
 
 setup_logging()
@@ -37,6 +45,7 @@ app.include_router(stories.router)
 app.include_router(ai_questions.router)
 app.include_router(project.router)
 app.include_router(assets.router)
+app.include_router(logs.router)
 
 app.mount(
     "/static",
