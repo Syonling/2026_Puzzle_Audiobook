@@ -1,4 +1,4 @@
-import { t } from "./i18n.js?v=20260825-1";
+import { t } from "./i18n.js?v=20260825-5";
 
 const DEFAULT_DURATION = 15;
 // 保留既有 ID 以兼容已保存项目；数组顺序就是界面与后端序列化顺序。
@@ -21,6 +21,7 @@ const status = document.querySelector("[data-audio-status]");
 const playButton = document.querySelector("[data-audio-play]");
 const pauseButton = document.querySelector("[data-audio-pause]");
 const stopButton = document.querySelector("[data-audio-stop]");
+const splitButton = document.querySelector("[data-audio-split]");
 const effectSelection = document.querySelector("[data-audio-effect-selection]");
 const effectButtons = [...document.querySelectorAll("[data-audio-effect]")];
 const effectUndoButton = document.querySelector("[data-audio-effect-undo]");
@@ -65,6 +66,7 @@ let objectTransformFrame = 0;
 let audioMutationRevision = 0;
 let isAIPreviewLocked = false;
 let selectedClipId = null;
+let selectedNarrationClipId = null;
 let previousClipEditSnapshot = null;
 let isEditingBackgroundVolume = false;
 let isEditingBackgroundVolumeNumber = false;
@@ -217,45 +219,53 @@ function syncNarrationToStep(audio, context) {
     if (!track) return;
 
     const audioUrl = context?.audioUrl || null;
-    const existing = track.clips.find((clip) => clip.audio_url === audioUrl)
-        || track.clips[0]
-        || null;
-    track.clips = [];
+    const matchingClips = track.clips.filter((clip) => clip.audio_url === audioUrl);
+    track.clips = matchingClips;
     if (!audioUrl) return;
 
-    const keepExistingSettings = existing?.audio_url === audioUrl;
-    const clip = normalizeClip({
-        ...(keepExistingSettings ? existing : {}),
-        clip_id: keepExistingSettings ? existing.clip_id : `narration-${context.stepId}`,
-        object_instance_id: NARRATION_AUDIO_INSTANCE_ID,
-        asset_key: "story_narration",
-        name: context.sentence || t("audio.narration"),
-        audio_url: audioUrl,
-        start_time: 0,
-        source_duration: keepExistingSettings ? existing.source_duration : 1,
-        trim_start: keepExistingSettings ? existing.trim_start : 0,
-        trim_end: keepExistingSettings ? existing.trim_end : 1,
-        duration: keepExistingSettings ? existing.duration : 1,
-        volume: keepExistingSettings ? existing.volume : 1,
-        pan: 0,
-    });
-    if (!clip) return;
-    track.clips.push(clip);
+    const createdClip = matchingClips.length === 0;
+    if (createdClip) {
+        const clip = normalizeClip({
+            clip_id: `narration-${context.stepId}`,
+            object_instance_id: NARRATION_AUDIO_INSTANCE_ID,
+            asset_key: "story_narration",
+            name: context.sentence || t("audio.narration"),
+            audio_url: audioUrl,
+            start_time: 0,
+            source_duration: 1,
+            trim_start: 0,
+            trim_end: 1,
+            duration: 1,
+            volume: 1,
+            pan: 0,
+        });
+        if (clip) track.clips.push(clip);
+    } else {
+        track.clips.forEach((clip) => {
+            clip.object_instance_id = NARRATION_AUDIO_INSTANCE_ID;
+            clip.asset_key = "story_narration";
+            clip.name = context.sentence || t("audio.narration");
+            clip.pan = 0;
+        });
+    }
 
     const expectedKey = getAudioKey(context.projectId ?? null, context.stepId);
     loadAudioBuffer(audioUrl).then((buffer) => {
-        if (activeAudioKey !== expectedKey || !track.clips.includes(clip)) return;
+        if (activeAudioKey !== expectedKey) return;
         const sourceDuration = Math.max(0.1, buffer.duration);
-        clip.source_duration = sourceDuration;
-        if (!keepExistingSettings) {
-            clip.trim_start = 0;
-            clip.trim_end = sourceDuration;
-            clip.duration = sourceDuration;
-        } else {
+        track.clips.forEach((clip) => {
+            if (clip.audio_url !== audioUrl) return;
+            clip.source_duration = sourceDuration;
+            if (createdClip) {
+                clip.trim_start = 0;
+                clip.trim_end = sourceDuration;
+                clip.duration = sourceDuration;
+                return;
+            }
             clip.trim_start = Math.min(clip.trim_start, sourceDuration - 0.1);
             clip.trim_end = Math.min(sourceDuration, Math.max(clip.trim_start + 0.1, clip.trim_end));
             clip.duration = clip.trim_end - clip.trim_start;
-        }
+        });
         const activeAudio = getActiveAudio();
         if (activeAudio) {
             activeAudio.duration = Math.max(
@@ -551,6 +561,13 @@ function getSelectedEditableClip() {
         .find((clip) => clip.clip_id === selectedClipId) || null;
 }
 
+function getSelectedNarrationClip() {
+    if (!selectedNarrationClipId) return null;
+    return getTrack(getActiveAudio(), LOCKED_TRACK_ID)?.clips.find(
+        (clip) => clip.clip_id === selectedNarrationClipId,
+    ) || null;
+}
+
 function getSelectedBackgroundClip() {
     const clip = getSelectedEditableClip();
     return clip?.object_instance_id === BACKGROUND_AUDIO_INSTANCE_ID ? clip : null;
@@ -706,12 +723,25 @@ function updateEffectControls() {
 
 function selectEditableClip(clipId) {
     commitBackgroundVolumeEdit();
+    selectedNarrationClipId = null;
     if (selectedClipId !== clipId) previousClipEditSnapshot = null;
     selectedClipId = clipId;
     document.querySelectorAll(".audio-clip").forEach((element) => {
         element.classList.toggle("is-selected", element.dataset.clipId === clipId);
     });
     updateEffectControls();
+}
+
+function selectNarrationClip(clipId) {
+    commitBackgroundVolumeEdit();
+    selectedClipId = null;
+    selectedNarrationClipId = clipId;
+    previousClipEditSnapshot = null;
+    document.querySelectorAll(".audio-clip").forEach((element) => {
+        element.classList.toggle("is-selected", element.dataset.clipId === clipId);
+    });
+    updateEffectControls();
+    updateTransport();
 }
 
 function mutateSelectedEffects(mutator) {
@@ -732,6 +762,7 @@ function mutateSelectedEffects(mutator) {
 function clearEffectsSelection() {
     commitBackgroundVolumeEdit();
     selectedClipId = null;
+    selectedNarrationClipId = null;
     previousClipEditSnapshot = null;
     updateEffectControls();
 }
@@ -813,8 +844,16 @@ function createClipElement(clip, duration, trackId) {
     button.setAttribute("role", "button");
     button.dataset.clipId = clip.clip_id;
     const isLockedTrack = trackId === LOCKED_TRACK_ID;
+    const isMovableNarrationSegment = isLockedTrack
+        && (getTrack(getActiveAudio(), LOCKED_TRACK_ID)?.clips.length || 0) > 1;
     button.classList.toggle("is-track-locked", isLockedTrack);
-    button.classList.toggle("is-selected", !isLockedTrack && clip.clip_id === selectedClipId);
+    button.classList.toggle("is-narration-segment", isMovableNarrationSegment);
+    button.classList.toggle(
+        "is-selected",
+        isLockedTrack
+            ? clip.clip_id === selectedNarrationClipId
+            : clip.clip_id === selectedClipId,
+    );
     button.style.left = (clip.start_time / duration * 100) + "%";
     button.style.width = (clip.duration / duration * 100) + "%";
     button.title = t("audio.clipDetail", {
@@ -824,7 +863,21 @@ function createClipElement(clip, duration, trackId) {
     button.setAttribute("aria-label", isLockedTrack
         ? t("audio.fixedClip", { name: displayName })
         : t("audio.dragClip", { name: displayName }));
-    if (!isLockedTrack) {
+    if (isLockedTrack) {
+        button.addEventListener("pointerdown", (event) => {
+            if (event.button !== 0 || isAIPreviewLocked) return;
+            event.preventDefault();
+            event.stopPropagation();
+            selectNarrationClip(clip.clip_id);
+            if (isMovableNarrationSegment) beginNarrationClipDrag(event, clip, button);
+        });
+        button.addEventListener("keydown", (event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            event.stopPropagation();
+            selectNarrationClip(clip.clip_id);
+        });
+    } else {
         button.addEventListener("pointerdown", (event) => {
             selectEditableClip(clip.clip_id);
             beginClipDrag(event, clip, button);
@@ -856,11 +909,53 @@ function createClipElement(clip, duration, trackId) {
     return button;
 }
 
+function splitSelectedNarration() {
+    const clip = getSelectedNarrationClip();
+    const track = getTrack(getActiveAudio(), LOCKED_TRACK_ID);
+    if (!clip || !track || isPlaying || isPreparing || isAIPreviewLocked) return;
+
+    const clipEnd = clip.start_time + clip.duration;
+    if (currentTime <= clip.start_time + 0.1 || currentTime >= clipEnd - 0.1) return;
+
+    const leftDuration = currentTime - clip.start_time;
+    const splitSourceTime = clip.trim_start + leftDuration;
+    const originalTrimEnd = clip.trim_end;
+    notifyHistoryCheckpoint();
+    haltPlayback();
+
+    clip.trim_end = splitSourceTime;
+    clip.duration = leftDuration;
+    const rightClip = normalizeClip({
+        ...clip,
+        clip_id: createInstanceId(),
+        object_instance_id: NARRATION_AUDIO_INSTANCE_ID,
+        start_time: currentTime,
+        trim_start: splitSourceTime,
+        trim_end: originalTrimEnd,
+        duration: originalTrimEnd - splitSourceTime,
+        effects: cloneEffects(clip.effects),
+    });
+    if (!rightClip) return;
+
+    const clipIndex = track.clips.indexOf(clip);
+    track.clips.splice(clipIndex + 1, 0, rightClip);
+    selectedNarrationClipId = rightClip.clip_id;
+    renderAudio();
+    notifyAudioChanged();
+}
+
 function updateTransport() {
     const hasClips = Boolean(getActiveAudio()?.tracks.some((track) => track.clips.length));
     if (playButton) playButton.disabled = !hasClips || isPlaying || isPreparing;
     if (pauseButton) pauseButton.disabled = !isPlaying || isPreparing;
     if (stopButton) stopButton.disabled = !hasClips || (!isPlaying && !isPreparing && currentTime === 0);
+    const narrationClip = getSelectedNarrationClip();
+    const canSplit = Boolean(
+        narrationClip
+        && currentTime > narrationClip.start_time + 0.1
+        && currentTime < narrationClip.start_time + narrationClip.duration - 0.1
+    );
+    if (splitButton) splitButton.disabled = !canSplit || isPlaying || isPreparing || isAIPreviewLocked;
     if (status) {
         status.textContent = activeContext
             ? t("audio.stepStatus", { order: activeContext.stepOrder, time: formatTime(currentTime) })
@@ -1166,6 +1261,52 @@ function beginPlayheadDrag(event) {
         window.removeEventListener("pointerup", onEnd);
     }
     setPlayheadFromClientX(event.clientX);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onEnd, { once: true });
+}
+
+function beginNarrationClipDrag(event, clip, element) {
+    if (event.button !== 0 || isAIPreviewLocked) return;
+    const track = getTrack(getActiveAudio(), LOCKED_TRACK_ID);
+    if (!track || track.clips.length < 2) return;
+    event.preventDefault();
+    event.stopPropagation();
+    haltPlayback();
+    const lane = event.currentTarget.closest("[data-audio-lane]");
+    if (!lane) return;
+
+    const duration = getTimelineDuration();
+    const originalStart = clip.start_time;
+    const startX = event.clientX;
+    let changed = false;
+    let historyCaptured = false;
+    element.classList.add("is-dragging");
+
+    function onMove(pointerEvent) {
+        const laneWidth = lane.getBoundingClientRect().width;
+        const deltaTime = (pointerEvent.clientX - startX) / laneWidth * duration;
+        const nextStart = Math.max(
+            0,
+            Math.min(duration - clip.duration, originalStart + deltaTime),
+        );
+        if (!historyCaptured && nextStart !== originalStart) {
+            notifyHistoryCheckpoint();
+            historyCaptured = true;
+        }
+        changed = changed || nextStart !== originalStart;
+        clip.start_time = nextStart;
+        element.style.left = (nextStart / duration * 100) + "%";
+    }
+
+    function onEnd() {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onEnd);
+        clip.start_time = Math.round(clip.start_time * 10) / 10;
+        element.classList.remove("is-dragging");
+        renderAudio();
+        if (changed) notifyAudioChanged();
+    }
+
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onEnd, { once: true });
 }
@@ -1645,6 +1786,7 @@ export function clearAudioCache() {
 playButton?.addEventListener("click", playTimeline);
 pauseButton?.addEventListener("click", pausePlayback);
 stopButton?.addEventListener("click", stopPlayback);
+splitButton?.addEventListener("click", splitSelectedNarration);
 assistantToolButtons.forEach((button) => {
     button.addEventListener("click", () => setAssistantTool(button.dataset.assistantTool));
 });

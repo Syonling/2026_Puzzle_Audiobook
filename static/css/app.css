@@ -2094,7 +2094,7 @@ p {
     cursor: pointer;
 }
 
-.audio-transport button:first-child {
+.audio-transport button[data-audio-play] {
     background: var(--text);
     color: white;
 }
@@ -2142,6 +2142,10 @@ p {
 
 .audio-clip.is-track-locked {
     cursor: default;
+}
+
+.audio-clip.is-track-locked.is-narration-segment {
+    cursor: grab;
 }
 
 .audio-clip.is-track-locked .audio-clip-trim-handle {

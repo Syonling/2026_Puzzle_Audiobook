@@ -1,4 +1,4 @@
-import { t } from "./i18n.js?v=20260825-1";
+import { t } from "./i18n.js?v=20260825-5";
 
 const EMPTY_CANVAS = Object.freeze({
     objects: [],

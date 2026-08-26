@@ -538,7 +538,7 @@ ASSETS = [
         "asset_key": "dolphin",
         "category": "animals",
         "image_url": "/static/images/dolphin.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/dolphin.wav",
         "contents": [
             {
                 "language": "ja",
@@ -561,7 +561,7 @@ ASSETS = [
         "asset_key": "horses_running",
         "category": "animals",
         "image_url": "/static/images/horses_running.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/horses_running.wav",
         "contents": [
             {
                 "language": "ja",
@@ -1964,7 +1964,7 @@ ASSETS = [
         "asset_key": "playing_children",
         "category": "characters",
         "image_url": "/static/images/playing_children.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/children_laughing.wav",
         "contents": [
             {
                 "language": "ja",
@@ -2056,7 +2056,7 @@ ASSETS = [
         "asset_key": "snow",
         "category": "weather",
         "image_url": "/static/images/snow.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/walking_on_snow.wav",
         "contents": [
             {
                 "language": "ja",
@@ -2470,7 +2470,7 @@ ASSETS = [
         "asset_key": "lighthouse",
         "category": "buildings",
         "image_url": "/static/images/lighthouse.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/lighthouse.wav",
         "contents": [
             {
                 "language": "ja",
@@ -2631,7 +2631,7 @@ ASSETS = [
         "asset_key": "closed_wooden_door",
         "category": "buildings",
         "image_url": "/static/images/closed_wooden_door.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/door_closing.wav",
         "contents": [
             {
                 "language": "ja",
@@ -2654,7 +2654,7 @@ ASSETS = [
         "asset_key": "half_open_wooden_door",
         "category": "buildings",
         "image_url": "/static/images/half_open_wooden_door.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/door_opening.wav",
         "contents": [
             {
                 "language": "ja",
@@ -2700,7 +2700,7 @@ ASSETS = [
         "asset_key": "broken_window",
         "category": "buildings",
         "image_url": "/static/images/broken_window.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/wind_through_cracks.wav",
         "contents": [
             {
                 "language": "ja",
@@ -2723,7 +2723,7 @@ ASSETS = [
         "asset_key": "spiral_staircase",
         "category": "buildings",
         "image_url": "/static/images/spiral_staircase.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/walking_on_wooden_floor.wav",
         "contents": [
             {
                 "language": "ja",
@@ -3137,7 +3137,7 @@ ASSETS = [
         "asset_key": "bicycle",
         "category": "vehicles",
         "image_url": "/static/images/bicycle.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/bicycle_bell.wav",
         "contents": [
             {
                 "language": "ja",
@@ -3413,7 +3413,7 @@ ASSETS = [
         "asset_key": "old_fishing_boat",
         "category": "vehicles",
         "image_url": "/static/images/old_fishing_boat.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/trawler_gears_turning.wav",
         "contents": [
             {
                 "language": "ja",
@@ -4770,7 +4770,7 @@ ASSETS = [
         "asset_key": "underwater_background",
         "category": "background",
         "image_url": "/static/images/underwater_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/underwater_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -4793,7 +4793,7 @@ ASSETS = [
         "asset_key": "cave_entrance_background",
         "category": "background",
         "image_url": "/static/images/cave_entrance_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/grassland_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -4816,7 +4816,7 @@ ASSETS = [
         "asset_key": "cave_inside_background",
         "category": "background",
         "image_url": "/static/images/cave_inside_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/cave_inside_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -4839,7 +4839,7 @@ ASSETS = [
         "asset_key": "village_night_background",
         "category": "background",
         "image_url": "/static/images/village_night_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/night_village_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -4862,7 +4862,7 @@ ASSETS = [
         "asset_key": "village_crossroad_night_background",
         "category": "background",
         "image_url": "/static/images/village_crossroad_night_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/night_village_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -4885,7 +4885,7 @@ ASSETS = [
         "asset_key": "dock_night_background",
         "category": "background",
         "image_url": "/static/images/dock_night_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/dock_night_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -4908,7 +4908,7 @@ ASSETS = [
         "asset_key": "dock_day_background",
         "category": "background",
         "image_url": "/static/images/dock_day_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/dock_day_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -4931,7 +4931,7 @@ ASSETS = [
         "asset_key": "closed_market_night_background",
         "category": "background",
         "image_url": "/static/images/closed_market_night_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/night_village_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -4954,7 +4954,7 @@ ASSETS = [
         "asset_key": "open_sea_night_background",
         "category": "background",
         "image_url": "/static/images/open_sea_night_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/sea_night_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -4977,7 +4977,7 @@ ASSETS = [
         "asset_key": "open_sea_day_background",
         "category": "background",
         "image_url": "/static/images/open_sea_day_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/seaside_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -5000,7 +5000,7 @@ ASSETS = [
         "asset_key": "rocky_coast_night_background",
         "category": "background",
         "image_url": "/static/images/rocky_coast_night_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/sea_night_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -5023,7 +5023,7 @@ ASSETS = [
         "asset_key": "beach_night_background",
         "category": "background",
         "image_url": "/static/images/beach_night_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/sea_night_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -5046,7 +5046,7 @@ ASSETS = [
         "asset_key": "old_building_interior_background",
         "category": "background",
         "image_url": "/static/images/old_building_interior_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/room_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -5069,7 +5069,7 @@ ASSETS = [
         "asset_key": "hillside_background",
         "category": "background",
         "image_url": "/static/images/hillside_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/grassland_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -5092,7 +5092,7 @@ ASSETS = [
         "asset_key": "orchard_background",
         "category": "background",
         "image_url": "/static/images/orchard_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/orchard_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -5115,7 +5115,7 @@ ASSETS = [
         "asset_key": "lighthouse_interior_background",
         "category": "background",
         "image_url": "/static/images/lighthouse_interior_background.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/room_background.wav",
         "contents": [
             {
                 "language": "ja",
@@ -5138,9 +5138,9 @@ ASSETS = [
 
 
 
-# 普通 icon 的额外备选音频统一维护在这里。
+# 单个 icon 或 background 的额外备选音频统一维护在这里。
 # 现有 audio_url 会在下方自动转换为 <asset_key>_default，作为默认音频；
-# 背景不使用 audio_options，仍然只保留原来的 audio_url。
+# audio_url 为 None 时，也可以只提供非默认的备选音频。
 #
 # 以后增加备选音频时，只需按下面的格式添加，不需要修改原素材字典：
 # ADDITIONAL_AUDIO_OPTIONS = {
@@ -5160,15 +5160,214 @@ ADDITIONAL_AUDIO_OPTIONS: dict[str, list[dict]] = {
             "sort_order": 1,
         },  
     ], 
+    "bicycle":[
+        {
+            "audio_key": "bicycle_chain",
+            "audio_url": "/static/audio/bicycle_chain.wav",
+            "sort_order": 1,
+        }
+    ],
+    "closed_wooden_door":[
+        {
+            "audio_key": "door_knocking",
+            "audio_url": "/static/audio/door_knocking.wav",
+            "sort_order": 1,
+        }
+    ],
+    "rain":[
+        {
+            "audio_key": "light_rain",
+            "audio_url": "/static/audio/light_rain.wav",
+            "sort_order": 1,
+        },
+        {
+            "audio_key": "moderate_rain",
+            "audio_url": "/static/audio/moderate_rain.wav",
+            "sort_order": 2,
+        },
+        {
+            "audio_key": "heavy_rain",
+            "audio_url": "/static/audio/heavy_rain.wav",
+            "sort_order": 3,
+        }
+    ],
+    "horse":[
+        {
+            "audio_key": "horse_panting",
+            "audio_url": "/static/audio/horse_panting.wav",
+            "sort_order": 1,
+        },
+        {
+            "audio_key": "horse_walking",
+            "audio_url": "/static/audio/horse_walking.wav",
+            "sort_order": 2,
+        }
+    ],
+    "wind":[
+        {
+            "audio_key": "light_wind",
+            "audio_url": "/static/audio/light_wind.wav",
+            "sort_order": 1,
+        },
+        {
+            "audio_key": "moderate_wind",
+            "audio_url": "/static/audio/moderate_wind.wav",
+            "sort_order": 2,
+        },
+        {
+            "audio_key": "wind_through_cracks",
+            "audio_url": "/static/audio/wind_through_cracks.wav",
+            "sort_order": 3,
+        },
+
+    ],
+    "sweat_drop":[
+        {
+            "audio_key": "rhythmic_water_dripping",
+            "audio_url": "/static/audio/rhythmic_water_dripping.wav",
+            "sort_order": 1,
+        },
+        {
+            "audio_key": "single_water_drop",
+            "audio_url": "/static/audio/single_water_drop.wav",
+            "sort_order": 2,
+        },
+        {
+            "audio_key": "two_water_drops",
+            "audio_url": "/static/audio/two_water_drops.wav",
+            "sort_order": 3,
+        },
+    ],
+
 }
 
 
-def _attach_audio_options() -> None:
-    """为普通 icon 组装默认音频和额外备选音频种子数据。"""
-    for asset in ASSETS:
-        if asset["category"] == "background":
-            continue
+# 多个 icon 或 background 共用同一音频文件时，在这里集中维护。
+# audio_key 会自动展开为 <asset_key>_<audio_key_suffix>，因此保持全局唯一。
+# sort_order 可以省略；省略时会为每个 asset 自动选择未占用的正整数。
+#
+# SHARED_AUDIO_OPTIONS = [
+#     {
+#         "audio_key_suffix": "normal_walking",
+#         "audio_url": "/static/audio/Normal_Walking.wav",
+#         "asset_keys": ["postman", "old_man", "mother", "child"],
+#     },
+# ]
+SHARED_AUDIO_OPTIONS: list[dict] = [
+    {
+        "audio_key_suffix": "normal_walking",
+        "audio_url": "/static/audio/normal_walking.wav",
+        "asset_keys": ["man", "woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
+    },
+    {
+        "audio_key_suffix": "brisk_walking",
+        "audio_url": "/static/audio/brisk_walking.wav",
+        "asset_keys": ["man", "woman",],
+    },
+    {
+        "audio_key_suffix": "clothing_rustling",
+        "audio_url": "/static/audio/clothing_rustling.wav",
+        "asset_keys": ["man", "woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
+    },
+    {
+        "audio_key_suffix": "country_road_walking_medium_speed",
+        "audio_url": "/static/audio/country_road_walking_medium_speed.wav",
+        "asset_keys": ["man", "woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
+    },
+    {
+        "audio_key_suffix": "creaking",
+        "audio_url": "/static/audio/creaking.wav",
+        "asset_keys": ["closed_wooden_door", "half_open_wooden_door","chair", "stool", "bench", ],
+    },
+    {
+        "audio_key_suffix": "hurried_footsteps",
+        "audio_url": "/static/audio/hurried_footsteps.wav",
+        "asset_keys": ["man", "woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
+    },
+    {
+        "audio_key_suffix": "packing_up",
+        "audio_url": "/static/audio/packing_up.wav",
+        "asset_keys": ["man", "woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
+    },
+    {
+        "audio_key_suffix": "walking_on_snow",
+        "audio_url": "/static/audio/walking_on_snow.wav",
+        "asset_keys": ["man", "woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
+    },
+    {
+        "audio_key_suffix": "walking_on_wooden_floor",
+        "audio_url": "/static/audio/walking_on_wooden_floor.wav",
+        "asset_keys": ["man", "woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
+    },
+    {
+        "audio_key_suffix": "orchard",
+        "audio_url": "/static/audio/orchard_background.wav",
+        "asset_keys": ["hillside_background", "village_crossroad_night_background", "village_night_background"],
+    },
+]
 
+
+def _validate_audio_option_targets() -> None:
+    asset_categories = {
+        asset["asset_key"]: asset["category"]
+        for asset in ASSETS
+    }
+
+    configured_asset_keys = set(ADDITIONAL_AUDIO_OPTIONS)
+    for shared in SHARED_AUDIO_OPTIONS:
+        suffix = shared.get("audio_key_suffix")
+        audio_url = shared.get("audio_url")
+        asset_keys = shared.get("asset_keys")
+        if not suffix or not audio_url or not isinstance(asset_keys, list):
+            raise ValueError(
+                "Each shared audio option requires audio_key_suffix, "
+                "audio_url, and an asset_keys list"
+            )
+        if not asset_keys:
+            raise ValueError(
+                f"Shared audio option {suffix} has no asset_keys"
+            )
+        if len(asset_keys) != len(set(asset_keys)):
+            raise ValueError(
+                f"Shared audio option {suffix} contains duplicate asset_keys"
+            )
+        configured_asset_keys.update(asset_keys)
+
+    unknown_asset_keys = configured_asset_keys - asset_categories.keys()
+    if unknown_asset_keys:
+        raise ValueError(
+            "Audio options reference unknown assets: "
+            f"{sorted(unknown_asset_keys)}"
+        )
+
+def _get_configured_audio_options(asset_key: str) -> list[dict]:
+    options = [
+        dict(option)
+        for option in ADDITIONAL_AUDIO_OPTIONS.get(asset_key, [])
+    ]
+
+    for shared in SHARED_AUDIO_OPTIONS:
+        if asset_key not in shared["asset_keys"]:
+            continue
+        options.append(
+            {
+                "audio_key": (
+                    f"{asset_key}_{shared['audio_key_suffix']}"
+                ),
+                "audio_url": shared["audio_url"],
+                "sort_order": shared.get("sort_order"),
+                "contents": shared.get("contents", []),
+            }
+        )
+
+    return options
+
+
+def _attach_audio_options() -> None:
+    """为 icon 和 background 组装默认音频及额外备选音频。"""
+    _validate_audio_option_targets()
+
+    for asset in ASSETS:
         audio_options = []
         default_audio_url = asset.get("audio_url")
 
@@ -5183,13 +5382,23 @@ def _attach_audio_options() -> None:
                 }
             )
 
-        for option in ADDITIONAL_AUDIO_OPTIONS.get(asset["asset_key"], []):
+        used_sort_orders = {
+            option["sort_order"]
+            for option in audio_options
+        }
+        for option in _get_configured_audio_options(asset["asset_key"]):
+            sort_order = option.get("sort_order")
+            if sort_order is None:
+                sort_order = 1
+                while sort_order in used_sort_orders:
+                    sort_order += 1
+            used_sort_orders.add(sort_order)
             audio_options.append(
                 {
                     "audio_key": option["audio_key"],
                     "audio_url": option["audio_url"],
                     "is_default": False,
-                    "sort_order": option["sort_order"],
+                    "sort_order": sort_order,
                     "contents": option.get("contents", []),
                 }
             )

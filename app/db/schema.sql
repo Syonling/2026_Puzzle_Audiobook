@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS assets_translations (
     UNIQUE (asset_id, language)
 );
 
--- 普通 icon 的可选音频。背景继续只使用 assets.audio_url，暂不进入此表。
+-- icon 和 background 的可选音频。
 CREATE TABLE IF NOT EXISTS asset_audio_options (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     asset_id INTEGER NOT NULL,
@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS asset_audio_options (
 CREATE INDEX IF NOT EXISTS idx_asset_audio_options_asset_id
 ON asset_audio_options(asset_id);
 
--- 一个 icon 最多只能有一个默认音频。
+-- 一个素材最多只能有一个默认音频。
 CREATE UNIQUE INDEX IF NOT EXISTS idx_asset_audio_options_one_default
 ON asset_audio_options(asset_id)
 WHERE is_default = 1;

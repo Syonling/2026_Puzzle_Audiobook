@@ -1,4 +1,4 @@
-import { getLanguage, t } from "./i18n.js?v=20260825-1";
+import { getLanguage, t } from "./i18n.js?v=20260825-5";
 
 export class ApiError extends Error {
     constructor(message, status) {

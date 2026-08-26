@@ -1,22 +1,22 @@
-import { request } from "./api.js?v=20260825-1";
-import { getLanguage, t } from "./i18n.js?v=20260825-1";
+import { request } from "./api.js?v=20260825-5";
+import { getLanguage, t } from "./i18n.js?v=20260825-5";
 import {
     getActiveCanvasContext,
     getActiveCanvasSnapshot,
     replaceActiveCanvasFromAI,
     restoreActiveCanvasSnapshot,
     setCanvasAIPreviewLocked,
-} from "./canvas.js?v=20260825-1";
+} from "./canvas.js?v=20260825-5";
 import {
     getActiveAudioSnapshot,
     restoreActiveAudioSnapshot,
     setAudioAIPreviewLocked,
-} from "./audio.js?v=20260825-4";
+} from "./audio.js?v=20260825-5";
 import {
     acceptAIPreview,
     beginAIPreview,
     rejectAIPreview,
-} from "./projects.js?v=20260825-1";
+} from "./projects.js?v=20260825-5";
 
 const form = document.querySelector("[data-ai-question-form]");
 const input = document.querySelector("[data-ai-question-input]");
@@ -41,7 +41,9 @@ function createAudioForAI(audio) {
     return {
         ...audio,
         tracks: Array.isArray(audio?.tracks)
-            ? audio.tracks.map((track) => ({
+            ? audio.tracks.filter(
+                (track) => track?.id !== "narration",
+            ).map((track) => ({
                 ...track,
                 clips: Array.isArray(track?.clips)
                     ? track.clips.map((clip) => {

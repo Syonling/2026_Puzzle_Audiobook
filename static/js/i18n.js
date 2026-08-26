@@ -36,7 +36,7 @@ const messages = {
         "canvas.drop": "放到画布中", "canvas.noEditable": "当前没有可编辑的画布", "canvas.aiInvalid": "AI 画布格式不正确",
         "canvas.aiAssetInvalid": "AI 返回了无效的素材对象", "canvas.aiCoordinateInvalid": "AI 返回了无效的画布坐标",
         "audio.timeline": "音频时间轴", "audio.tracks": "音频轨道", "audio.controls": "音频播放控制", "audio.currentStep": "当前步骤 · 0:00", "audio.stepStatus": "第 {order} 页 · {time}",
-        "audio.noStep": "未选择步骤 · {time}", "audio.play": "播放", "audio.pause": "暂停", "audio.stop": "停止",
+        "audio.noStep": "未选择步骤 · {time}", "audio.play": "播放", "audio.pause": "暂停", "audio.stop": "停止", "audio.split": "在播放头处切分旁白",
         "audio.narration": "旁白", "audio.narrationFixed": "固定旁白轨道，不接受手动拖入", "audio.background": "背景音频", "audio.effects": "素材音效", "audio.free": "自由轨道", "audio.seek": "拖动播放位置", "audio.muteTrack": "静音{track}轨道", "audio.unmuteTrack": "取消静音{track}轨道",
         "audio.clip": "音频", "audio.dragClip": "拖动音频块：{name}", "audio.fixedClip": "固定音频：{name}", "audio.trim": "拖动裁剪音频结尾", "audio.seconds": "{value}秒", "audio.clipDetail": "{name} · {duration}秒",
         "audio.effectsControls": "音频效果处理", "audio.selectClip": "选择音频后添加效果", "audio.fadeIn": "淡入", "audio.fadeOut": "淡出", "audio.reverb": "空间", "audio.echo": "回声", "audio.effectUndo": "撤销", "audio.effectReset": "还原", "audio.backgroundVolume": "背景音量", "audio.backgroundVolumeAdjust": "调整背景音量",
@@ -73,6 +73,7 @@ const messages = {
 };
 
 Object.assign(messages.ja, {
+    "audio.split":"再生ヘッド位置でナレーションを分割",
     "ai.acceptDesign":"デザインを採用","ai.rejectDesign":"元に戻す",
     "ai.error":"AIリクエストに失敗しました","ai.retry":"再試行",
     "canvas.removeBackground":"背景を削除",
@@ -92,6 +93,7 @@ Object.assign(messages.ja, {
 });
 
 Object.assign(messages.en, {
+    "audio.split":"Split narration at playhead",
     "ai.acceptDesign":"Accept Design","ai.rejectDesign":"Reject Design",
     "ai.error":"AI request failed","ai.retry":"Retry",
     "canvas.removeBackground":"Remove Background",

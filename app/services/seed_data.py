@@ -90,9 +90,6 @@ def _validate_asset_audio_options() -> None:
     used_audio_keys = set()
 
     for asset in ASSETS:
-        if asset["category"] == "background":
-            continue
-
         audio_options = _get_asset_audio_options(asset)
         default_options = [
             option
@@ -105,11 +102,6 @@ def _validate_asset_audio_options() -> None:
                 f"Asset {asset['asset_key']} has more than one default audio"
             )
 
-        if audio_options and len(default_options) != 1:
-            raise ValueError(
-                f"Asset {asset['asset_key']} must have exactly one default audio"
-            )
-
         if asset.get("audio_url"):
             if not default_options:
                 raise ValueError(
@@ -119,9 +111,10 @@ def _validate_asset_audio_options() -> None:
                 raise ValueError(
                     f"Asset {asset['asset_key']} has inconsistent default audio_url"
                 )
-        elif audio_options:
+        elif default_options:
             raise ValueError(
-                f"Asset {asset['asset_key']} has audio options but no default audio_url"
+                f"Asset {asset['asset_key']} has a default audio option "
+                "but no default audio_url"
             )
 
         sort_orders = set()
@@ -263,11 +256,7 @@ def seed_database(connect) -> None:
         )
         )
 
-        # 背景暂时不支持多音频，继续只使用 assets.audio_url。
-        if asset["category"] == "background":
-            continue
-
-        # 先取消数据库中这个 icon 的旧默认标记，再按当前种子数据设置默认项。
+        # 先取消数据库中这个素材的旧默认标记，再按当前种子数据设置默认项。
         # 从种子文件移除的旧备选音频不会被删除。
         connect.execute(
             """
