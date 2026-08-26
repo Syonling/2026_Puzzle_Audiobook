@@ -1,8 +1,9 @@
-import { request } from "./api.js?v=20260826-6";
-import { t } from "./i18n.js?v=20260826-6";
+import { request } from "./api.js?v=20260826-7";
+import { t } from "./i18n.js?v=20260826-7";
 
 const SESSION_KEY = "puzzleAudiobook.user";
 const APP_STORAGE_PREFIX = "puzzleAudiobook.";
+const PRESERVED_LOG_KEYS = new Set(["puzzleAudiobook.eventQueue"]);
 let authMode = "login";
 let authRevision = 0;
 
@@ -33,7 +34,9 @@ function saveCurrentUser(user) {
 function clearAppState() {
     authRevision += 1;
     Object.keys(localStorage)
-        .filter((key) => key.startsWith(APP_STORAGE_PREFIX))
+        .filter((key) => (
+            key.startsWith(APP_STORAGE_PREFIX) && !PRESERVED_LOG_KEYS.has(key)
+        ))
         .forEach((key) => localStorage.removeItem(key));
     Object.keys(sessionStorage)
         .filter((key) => key.startsWith(APP_STORAGE_PREFIX))
@@ -238,6 +241,7 @@ document.querySelector("[data-logout]")?.addEventListener("click", async (event)
         // 即使网络异常，也清除本机数据，避免用户信息继续留在当前页面。
         console.error("Logout request failed:", error);
     } finally {
+        window.dispatchEvent(new CustomEvent("puzzle-audiobook:session-ending"));
         clearAppState();
         window.location.replace("/");
     }

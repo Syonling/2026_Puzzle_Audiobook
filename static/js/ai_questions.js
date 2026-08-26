@@ -1,22 +1,22 @@
-import { request } from "./api.js?v=20260826-6";
-import { getLanguage, t } from "./i18n.js?v=20260826-6";
+import { request } from "./api.js?v=20260826-7";
+import { getLanguage, t } from "./i18n.js?v=20260826-7";
 import {
     getActiveCanvasContext,
     getActiveCanvasSnapshot,
     replaceActiveCanvasFromAI,
     restoreActiveCanvasSnapshot,
     setCanvasAIPreviewLocked,
-} from "./canvas.js?v=20260826-6";
+} from "./canvas.js?v=20260826-7";
 import {
     getActiveAudioSnapshot,
     restoreActiveAudioSnapshot,
     setAudioAIPreviewLocked,
-} from "./audio.js?v=20260826-6";
+} from "./audio.js?v=20260826-7";
 import {
     acceptAIPreview,
     beginAIPreview,
     rejectAIPreview,
-} from "./projects.js?v=20260826-6";
+} from "./projects.js?v=20260826-7";
 
 const form = document.querySelector("[data-ai-question-form]");
 const input = document.querySelector("[data-ai-question-input]");
@@ -36,6 +36,17 @@ let isSubmitting = false;
 let presetRequestRevision = 0;
 let answerRequestRevision = 0;
 let aiPreviewTransaction = null;
+
+function createSuggestionId() {
+    return globalThis.crypto?.randomUUID?.()
+        || `suggestion-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function emitAIEvent(eventType, detail = {}) {
+    window.dispatchEvent(new CustomEvent("puzzle-audiobook:ai-event", {
+        detail: { eventType, ...detail },
+    }));
+}
 
 function createAudioForAI(audio) {
     return {
@@ -115,6 +126,11 @@ function rejectCurrentAIPreview({ closeAnswer = true } = {}) {
     setCanvasAIPreviewLocked(false);
     setAudioAIPreviewLocked(false);
     rejectAIPreview(transaction.originalUnsavedState);
+    emitAIEvent("ai_rejected", {
+        suggestionId: transaction.suggestionId,
+        responseToken: transaction.responseToken,
+        rejectedItems: transaction.previewCanvas?.objects || [],
+    });
     if (closeAnswer) hideAnswer();
 }
 
@@ -136,10 +152,19 @@ function acceptCurrentAIPreview() {
     setCanvasAIPreviewLocked(false);
     setAudioAIPreviewLocked(false);
     acceptAIPreview();
+    emitAIEvent("ai_accepted", {
+        suggestionId: transaction.suggestionId,
+        responseToken: transaction.responseToken,
+        acceptedCanvas: getActiveCanvasSnapshot(),
+        acceptedAudio: getActiveAudioSnapshot(),
+        acceptedItems: transaction.previewCanvas?.objects || [],
+        rejectedItems: [],
+        modifiedItems: [],
+    });
     hideAnswer();
 }
 
-function beginCanvasAIPreview(aiCanvas, responseToken) {
+function beginCanvasAIPreview(aiCanvas, responseToken, suggestionId) {
     const originalCanvas = getActiveCanvasSnapshot();
     const originalAudio = getActiveAudioSnapshot();
     if (!originalCanvas || !originalAudio) throw new Error(t("ai.stepRequired"));
@@ -150,11 +175,13 @@ function beginCanvasAIPreview(aiCanvas, responseToken) {
         originalAudio: cloneSnapshot(originalAudio),
         originalUnsavedState,
         responseToken,
+        suggestionId,
     };
     setCanvasAIPreviewLocked(true);
     setAudioAIPreviewLocked(true);
     try {
         replaceActiveCanvasFromAI(aiCanvas, { responseToken });
+        aiPreviewTransaction.previewCanvas = cloneSnapshot(getActiveCanvasSnapshot());
     } catch (error) {
         rejectCurrentAIPreview({ closeAnswer: false });
         throw error;
@@ -264,16 +291,24 @@ form?.addEventListener("submit", async (event) => {
 
     isSubmitting = true;
     const revision = ++answerRequestRevision;
+    const suggestionId = createSuggestionId();
     const languageAtSubmit = getLanguage();
     const stepIdAtSubmit = canvasContext.stepId;
     submit.disabled = true;
     submit.textContent = t("ai.thinking");
     hideAnswer();
     publishSuggestedAssets();
+    emitAIEvent("ai_request", {
+        suggestionId,
+        requestTimestamp: new Date().toISOString(),
+        pageId: canvasContext.stepId,
+        userRequest,
+    });
 
     try {
         const result = await request("/ai/getanswer", {
             method: "POST",
+            headers: { "X-Suggestion-ID": suggestionId },
             body: JSON.stringify({
                 user_request: userRequest,
                 story_id: canvasContext.storyId,
@@ -289,6 +324,12 @@ form?.addEventListener("submit", async (event) => {
             || latestContext?.storyId !== canvasContext.storyId
             || latestContext?.stepId !== stepIdAtSubmit
         ) return;
+        emitAIEvent("ai_result_received", {
+            suggestionId,
+            responseTimestamp: new Date().toISOString(),
+            mode: result.mode,
+            output: result.output,
+        });
         if (result.mode === "suggestion") {
             const iconKeys = result.output?.icon_keys;
             if (
@@ -322,10 +363,17 @@ form?.addEventListener("submit", async (event) => {
             showAnswer(
                 [explanation, audioSuggestions].filter(Boolean).join("\n\n"),
             );
+            emitAIEvent("ai_result_displayed", {
+                suggestionId,
+                displayTimestamp: new Date().toISOString(),
+                mode: result.mode,
+                suggestedItems: suggestedKeys,
+                suggestedAudio: result.output?.audio_suggestions || [],
+            });
         } else if (result.mode === "generate") {
             const responseToken =
                 `${languageAtSubmit}:${canvasContext.storyId}:${stepIdAtSubmit}:${revision}`;
-            beginCanvasAIPreview(result.output, responseToken);
+            beginCanvasAIPreview(result.output, responseToken, suggestionId);
             publishSuggestedAssets();
             const reasoning = typeof result.output?.reasoning === "string"
                 ? result.output.reasoning.trim()
@@ -334,11 +382,23 @@ form?.addEventListener("submit", async (event) => {
                 reasoning ? formatReasoning(reasoning) : t("ai.generated"),
                 { showPreviewActions: true },
             );
+            emitAIEvent("ai_result_displayed", {
+                suggestionId,
+                displayTimestamp: new Date().toISOString(),
+                mode: result.mode,
+                suggestedItems: result.output?.objects || [],
+                suggestedAudio: result.output?.audio_suggestions || [],
+            });
         } else {
             throw new Error(t("ai.unknownMode"));
         }
     } catch (error) {
         if (revision !== answerRequestRevision) return;
+        emitAIEvent("ai_request_failed", {
+            suggestionId,
+            failedTimestamp: new Date().toISOString(),
+            message: error.message || null,
+        });
         showAnswer(error.message || t("ai.failed"), { isError: true });
     } finally {
         if (revision !== answerRequestRevision) return;

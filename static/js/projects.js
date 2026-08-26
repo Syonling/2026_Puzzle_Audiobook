@@ -1,5 +1,5 @@
-import { request } from "./api.js?v=20260826-6";
-import { t } from "./i18n.js?v=20260826-6";
+import { request } from "./api.js?v=20260826-7";
+import { t } from "./i18n.js?v=20260826-7";
 import {
     activateDraftCanvas,
     clearCanvasCache,
@@ -10,7 +10,7 @@ import {
     restoreRemoteCanvas,
     showRemoteCanvasLoading,
     storeRemoteCanvas,
-} from "./canvas.js?v=20260826-6";
+} from "./canvas.js?v=20260826-7";
 import {
     activateDraftAudio,
     clearAudioCache,
@@ -21,7 +21,7 @@ import {
     showRemoteAudioLoading,
     storeRemoteAudio,
     syncAudioToCanvasObjects,
-} from "./audio.js?v=20260826-6";
+} from "./audio.js?v=20260826-7";
 
 const getDefaultProjectTitle = () => t("project.unnamed");
 const saveButton = document.querySelector("[data-save-project]");
@@ -84,6 +84,12 @@ function clearHistory() {
     updateHistoryButtons();
 }
 
+function notifyPageStateReady(context) {
+    window.dispatchEvent(new CustomEvent("puzzle-audiobook:page-state-ready", {
+        detail: { ...context, projectId },
+    }));
+}
+
 function commitPendingHistory() {
     if (!pendingHistorySnapshot || isRestoringHistory || isAIPreviewActive) return;
     undoSnapshot = pendingHistorySnapshot;
@@ -115,6 +121,9 @@ function undoLastChange() {
     undoSnapshot = null;
     pendingHistorySnapshot = null;
     updateHistoryButtons();
+    window.dispatchEvent(new CustomEvent("puzzle-audiobook:history-applied", {
+        detail: { direction: "undo", operationType: "state_change" },
+    }));
 }
 
 function redoLastChange() {
@@ -126,6 +135,9 @@ function redoLastChange() {
     redoSnapshot = null;
     pendingHistorySnapshot = null;
     updateHistoryButtons();
+    window.dispatchEvent(new CustomEvent("puzzle-audiobook:history-applied", {
+        detail: { direction: "redo", operationType: "state_change" },
+    }));
 }
 
 function setSaveStatus(message, state = "") {
@@ -355,6 +367,7 @@ async function loadStepCanvas(context) {
         clearHistory();
         hasUnsavedChanges = false;
         setTranslatedSaveStatus("project.loaded", {}, "success");
+        notifyPageStateReady(context);
     } catch (error) {
         const isStillCurrent =
             revision === canvasLoadRevision
@@ -387,6 +400,7 @@ async function handleStepChange(context) {
         clearHistory();
         hasUnsavedChanges = false;
         updateSaveButton();
+        notifyPageStateReady(context);
         return;
     }
 
@@ -398,6 +412,7 @@ async function handleStepChange(context) {
         clearHistory();
         hasUnsavedChanges = false;
         setTranslatedSaveStatus("canvas.unsaved");
+        notifyPageStateReady(context);
         return;
     }
 
@@ -517,6 +532,14 @@ async function saveCurrentCanvas() {
                 setTranslatedSaveStatus("project.stepSaved", { order: contextAtStart.stepOrder }, "success");
             }
         }
+        window.dispatchEvent(new CustomEvent("puzzle-audiobook:project-saved", {
+            detail: {
+                projectId,
+                storyId: contextAtStart.storyId,
+                stepId: contextAtStart.stepId,
+                savedAt: new Date().toISOString(),
+            },
+        }));
         return true;
     } catch (error) {
         // projectId 只在成功响应通过校验后赋值，失败不会产生虚假 ID。

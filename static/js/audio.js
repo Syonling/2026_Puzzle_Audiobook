@@ -1,4 +1,4 @@
-import { t } from "./i18n.js?v=20260826-6";
+import { t } from "./i18n.js?v=20260826-7";
 
 const DEFAULT_DURATION = 15;
 // 保留既有 ID 以兼容已保存项目；数组顺序就是界面与后端序列化顺序。
@@ -1232,12 +1232,19 @@ function pausePlayback() {
     );
     haltPlayback();
     renderAudio();
+    window.dispatchEvent(new CustomEvent("puzzle-audiobook:audio-transport", {
+        detail: { action: "pause", position: currentTime },
+    }));
 }
 
 function stopPlayback() {
+    const stoppedAt = currentTime;
     haltPlayback();
     currentTime = 0;
     renderAudio();
+    window.dispatchEvent(new CustomEvent("puzzle-audiobook:audio-transport", {
+        detail: { action: "stop", position: stoppedAt },
+    }));
 }
 
 function getWebAudioContext() {
@@ -1402,6 +1409,9 @@ async function playTimeline() {
         playbackMasterGain = context.createGain();
         playbackMasterGain.gain.value = 1;
         playbackMasterGain.connect(context.destination);
+        window.dispatchEvent(new CustomEvent("puzzle-audiobook:audio-transport", {
+            detail: { action: "play", position: startPosition },
+        }));
         clipEntries.forEach(({ clip, trackId }, index) => {
             const clipEnd = clip.start_time + clip.duration;
             if (clipEnd <= startPosition) return;

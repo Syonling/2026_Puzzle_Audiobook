@@ -1,5 +1,5 @@
-import { request } from "./api.js?v=20260826-6";
-import { t } from "./i18n.js?v=20260826-6";
+import { request } from "./api.js?v=20260826-7";
+import { t } from "./i18n.js?v=20260826-7";
 
 const DEFAULT_STORY_ID = 1;
 const DEFAULT_STORY_STATE = Object.freeze({

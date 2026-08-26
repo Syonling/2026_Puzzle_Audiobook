@@ -1,5 +1,5 @@
-import { request } from "./api.js?v=20260826-6";
-import { t } from "./i18n.js?v=20260826-6";
+import { request } from "./api.js?v=20260826-7";
+import { t } from "./i18n.js?v=20260826-7";
 
 const searchInput = document.querySelector("[data-asset-search]");
 const categoryList = document.querySelector("[data-asset-categories]");
@@ -75,7 +75,10 @@ function createAssetItem(asset, isSuggestion = false) {
         const activateAsset = () => {
             window.dispatchEvent(new CustomEvent("puzzle-audiobook:asset-activate", {
                 detail: {
-                    asset: { ...asset },
+                    asset: {
+                        ...asset,
+                        interaction_source: isSuggestion ? "AI" : "manual",
+                    },
                     audioSuggestion: audioSuggestion ? { ...audioSuggestion } : null,
                 },
             }));
@@ -91,6 +94,7 @@ function createAssetItem(asset, isSuggestion = false) {
     item.addEventListener("dragstart", (event) => {
         const payload = JSON.stringify({
             ...asset,
+            interaction_source: isSuggestion ? "AI" : "manual",
             ai_audio_suggestion: audioSuggestion ? { ...audioSuggestion } : null,
         });
         event.dataTransfer.effectAllowed = "copy";

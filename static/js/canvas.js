@@ -1,4 +1,4 @@
-import { t } from "./i18n.js?v=20260826-6";
+import { t } from "./i18n.js?v=20260826-7";
 
 const EMPTY_CANVAS = Object.freeze({
     objects: [],
@@ -537,10 +537,12 @@ function addAssetToCanvas(asset, clientX, clientY, audioSuggestion = null) {
         asset_id: asset.id,
         object_id: asset.asset_key,
         asset_key: asset.asset_key,
+        category: asset.category ?? null,
         label: asset.name,
         image_url: asset.image_url,
         audio_url: audioChoice.audioUrl,
         selected_audio_key: audioChoice.audioKey,
+        source: asset.interaction_source === "AI" ? "AI" : "manual",
         effects: audioChoice.effects,
         start_offset_seconds: audioChoice.startOffset,
         x: clamp(clientX - rect.left, 0, rect.width),
@@ -599,6 +601,7 @@ function applyBackgroundToCanvas(asset, audioSuggestion = null) {
         audio_url: audioChoice.audioUrl,
         start_offset_seconds: audioChoice.startOffset,
         effects: audioChoice.effects,
+        source: asset.interaction_source === "AI" ? "AI" : "manual",
     };
     selectObject(null);
     renderActiveCanvas();
@@ -616,6 +619,7 @@ function applyBackgroundToCanvas(asset, audioSuggestion = null) {
                 audio_url: audioChoice.audioUrl,
                 start_offset_seconds: audioChoice.startOffset,
                 effects: audioChoice.effects,
+                source: asset.interaction_source === "AI" ? "AI" : "manual",
             },
         },
     }));
@@ -750,6 +754,7 @@ export function replaceActiveCanvasFromAI(aiCanvas, options = {}) {
             asset_id: object.asset_id ?? null,
             object_id: object.asset_key,
             asset_key: object.asset_key,
+            category: object.category ?? null,
             label: object.name || object.asset_key,
             image_url: object.image_url || `/static/images/${object.asset_key}.png`,
             audio_url: object.audio_url ?? null,
@@ -768,6 +773,7 @@ export function replaceActiveCanvasFromAI(aiCanvas, options = {}) {
             scale: clamp(Number(object.scale), MIN_SCALE, MAX_SCALE),
             rotation: Number(object.rotation),
             flip_x: object.flip_x === true,
+            source: "AI",
         };
     });
 
@@ -789,6 +795,7 @@ export function replaceActiveCanvasFromAI(aiCanvas, options = {}) {
                 && typeof aiCanvas.background.effects === "object"
                     ? { ...aiCanvas.background.effects }
                     : {},
+            source: "AI",
         }
         : null;
 

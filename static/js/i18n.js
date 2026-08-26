@@ -8,7 +8,7 @@ const messages = {
         "section.story": "故事", "section.canvas": "画布", "section.library": "素材",
         "project.unnamed": "未命名作品", "account.open": "打开用户菜单", "account.current": "当前用户",
         "account.logout": "退出登录", "account.logoutPending": "正在退出…", "account.loginOrRegister": "登录或注册",
-        "account.userMenu": "{username} 的用户菜单", "language.label": "界面语言", "language.ja": "日语", "language.zh": "中文", "language.en": "英语",
+        "account.userMenu": "{username} 的用户菜单", "language.label": "界面语言", "language.ja": "日语", "language.zh": "中文", "language.en": "英语", "timer.open": "设置倒计时", "timer.heading": "倒计时", "timer.minutes": "分钟", "timer.seconds": "秒", "timer.start": "开始", "timer.continue": "继续", "timer.pause": "暂停", "timer.reset": "重置", "timer.finished": "时间到",
         "story.heading": "故事与引导", "story.fallback": "故事", "story.current": "当前故事", "story.loading": "正在加载故事…",
         "story.wait": "请稍候", "story.none": "暂无故事", "story.noneDescription": "书架中还没有可选择的故事",
         "story.steps": "故事步骤", "story.step": "故事步骤 {order}", "story.stepView": "查看故事步骤 {order}",
@@ -73,6 +73,7 @@ const messages = {
 };
 
 Object.assign(messages.ja, {
+    "timer.open":"カウントダウンを設定","timer.heading":"カウントダウン","timer.minutes":"分","timer.seconds":"秒","timer.start":"開始","timer.continue":"再開","timer.pause":"一時停止","timer.reset":"リセット","timer.finished":"時間です",
     "audio.duplicate":"複製","audio.deleteClip":"音声を削除","audio.addOption":"音声を追加：{name}",
     "audio.iconBaseVolume":"基準音量","audio.iconBaseVolumeAdjust":"素材の基準音量を調整",
     "library.addRecommended":"クリックしてAIおすすめの「{name}」をキャンバスに追加",
@@ -97,6 +98,7 @@ Object.assign(messages.ja, {
 });
 
 Object.assign(messages.en, {
+    "timer.open":"Set countdown","timer.heading":"Countdown","timer.minutes":"Minutes","timer.seconds":"Seconds","timer.start":"Start","timer.continue":"Continue","timer.pause":"Pause","timer.reset":"Reset","timer.finished":"Time is up",
     "audio.duplicate":"Duplicate","audio.deleteClip":"Delete audio","audio.addOption":"Add sound: {name}",
     "audio.iconBaseVolume":"Base Volume","audio.iconBaseVolumeAdjust":"Adjust asset base volume",
     "library.addRecommended":"Click to add AI-recommended “{name}” to the canvas",
