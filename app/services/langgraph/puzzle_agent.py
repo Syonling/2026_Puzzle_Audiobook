@@ -56,7 +56,8 @@ class SoundAnalysis(BaseModel):
         default_factory=list,
         max_length=12,
         description=(
-            "Return optional audio choices only for story-relevant icon assets."
+            "Return optional audio choices for story-relevant icons or the "
+            "relevant background."
         ),
     )
     reasoning: str = Field(..., description="Return a concise explanation of the icon_keys, background_key, spatial-depth suggestions, and suggested audio order in no more than ten sentences.", max_length=1000)
@@ -66,7 +67,10 @@ class AudioSuggestion(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     asset_key: str = Field(
-        description="Return one exact asset_key from available_icons."
+        description=(
+            "Return one exact key belonging to an icon or background that "
+            "has options in available_audio_options."
+        )
     )
     selected_audio_key: str = Field(
         description=(
@@ -174,6 +178,13 @@ class CanvasDesign(BaseModel):
         description=(
             "Return true only when the selected background has audio and its "
             "environment sound is useful to this scene."
+        ),
+    )
+    selected_background_audio_key: str | None = Field(
+        default=None,
+        description=(
+            "When background audio is enabled, return one exact audio_key "
+            "belonging to background_key; otherwise return null."
         ),
     )
     background_start_offset_seconds: float | None = Field(
@@ -428,9 +439,10 @@ async def llm_call_1(state: State):
 
     audio_suggestions = []
     for suggestion in result.audio_suggestions:
-        if suggestion.asset_key not in allowed_icon_keys:
+        allowed_audio_asset_keys = allowed_icon_keys | set(background_by_key)
+        if suggestion.asset_key not in allowed_audio_asset_keys:
             raise ValueError(
-                "LLM returned an audio suggestion for invalid icon: "
+                "LLM returned an audio suggestion for invalid asset: "
                 f"{suggestion.asset_key}"
             )
         audio_key = _validated_audio_key(
@@ -446,6 +458,11 @@ async def llm_call_1(state: State):
         audio_suggestions.append(
             {
                 "asset_key": suggestion.asset_key,
+                "asset_type": (
+                    "background"
+                    if suggestion.asset_key in background_by_key
+                    else "icon"
+                ),
                 "selected_audio_key": audio_key,
                 "audio_name": option["name"],
                 "start_offset_seconds": suggestion.start_offset_seconds,
@@ -580,7 +597,19 @@ async def llm_call_2(state: State):
         if canvas["background_key"] is not None
         else None
     )
-    if not background or not background["has_audio"]:
+    selected_background_audio_key = None
+    if background and canvas["background_audio_enabled"]:
+        selected_background_audio_key = _validated_audio_key(
+            canvas["background_key"],
+            canvas["selected_background_audio_key"],
+            audio_by_asset,
+            default_audio_by_asset,
+        )
+    canvas["selected_background_audio_key"] = (
+        selected_background_audio_key
+    )
+
+    if not background or selected_background_audio_key is None:
         canvas["background_audio_enabled"] = False
         canvas["background_start_offset_seconds"] = None
         canvas["background_effect_keys"] = []

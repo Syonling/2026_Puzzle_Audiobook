@@ -70,7 +70,6 @@ def get_asset_context(language: Language = "zh") -> AssetContext:
             LEFT JOIN asset_audio_option_translations AS aaot
                 ON aaot.audio_option_id = aao.id
                 AND aaot.language = ?
-            WHERE a.category != 'background'
             ORDER BY a.id, aao.sort_order, aao.id
             """,
             (language,),
@@ -98,7 +97,9 @@ def get_asset_context(language: Language = "zh") -> AssetContext:
                     row["asset_key"],
                     "",
                 ),
-                "has_audio": bool(row["audio_url"]),
+                "has_audio": (
+                    row["asset_key"] in audio_options_by_asset
+                ),
             }
             for row in asset_rows
             if row["category"] == "background"
@@ -130,7 +131,7 @@ def get_asset_context(language: Language = "zh") -> AssetContext:
         }
         logger.info(
             "AI asset context loaded | language=%s | icons=%d | "
-            "audio_icons=%d | backgrounds=%d | elapsed_ms=%.1f",
+            "audio_assets=%d | backgrounds=%d | elapsed_ms=%.1f",
             language,
             len(icons),
             len(audio_options_by_asset),

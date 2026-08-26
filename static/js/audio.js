@@ -1,4 +1,4 @@
-import { t } from "./i18n.js?v=20260826-2";
+import { t } from "./i18n.js?v=20260826-6";
 
 const DEFAULT_DURATION = 15;
 // 保留既有 ID 以兼容已保存项目；数组顺序就是界面与后端序列化顺序。
@@ -26,7 +26,10 @@ const effectSelection = document.querySelector("[data-audio-effect-selection]");
 const effectButtons = [...document.querySelectorAll("[data-audio-effect]")];
 const effectUndoButton = document.querySelector("[data-audio-effect-undo]");
 const effectResetButton = document.querySelector("[data-audio-effect-reset]");
+const duplicateClipButton = document.querySelector("[data-audio-duplicate]");
+const deleteClipButton = document.querySelector("[data-audio-delete]");
 const backgroundVolumeControl = document.querySelector("[data-background-volume-control]");
+const backgroundVolumeLabel = document.querySelector("[data-background-volume-label]");
 const backgroundVolumeInput = document.querySelector("[data-background-volume]");
 const backgroundVolumeOutput = document.querySelector("[data-background-volume-output]");
 const backgroundVolumeNumberInput = document.querySelector("[data-background-volume-number]");
@@ -45,6 +48,8 @@ const audioCache = new Map();
 const bufferCache = new Map();
 const reverbImpulseCache = new Map();
 const localizedAssetsByKey = new Map();
+const aiRecommendedAudioByAssetKey = new Map();
+const objectScaleByInstanceId = new Map();
 let activeContext = null;
 let activeAudioKey = null;
 let currentTime = 0;
@@ -164,6 +169,7 @@ function normalizeClip(clip) {
         asset_id: clip.asset_id ?? null,
         asset_key: clip.asset_key || "",
         audio_key: clip.audio_key || null,
+        is_primary: clip.is_primary !== false,
         name: clip.name || clip.asset_key || t("audio.clip"),
         audio_url: clip.audio_url,
         start_time: Math.max(0, Number(clip.start_time) || 0),
@@ -174,6 +180,11 @@ function normalizeClip(clip) {
         volume: Number.isFinite(Number(clip.volume))
             ? Math.min(2, Math.max(0, Number(clip.volume)))
             : 1,
+        base_volume: clip.base_volume !== null
+            && clip.base_volume !== undefined
+            && Number.isFinite(Number(clip.base_volume))
+            ? Math.min(2, Math.max(0, Number(clip.base_volume)))
+            : null,
         pan: Number.isFinite(Number(clip.pan))
             ? Math.min(1, Math.max(-1, Number(clip.pan)))
             : 0,
@@ -347,11 +358,16 @@ function resetTrackMutes() {
     updateTrackMuteButtons();
 }
 
-function getObjectClip(instanceId) {
-    if (!instanceId) return null;
-    return getActiveAudio()?.tracks.flatMap((track) => track.clips).find(
+function getObjectClips(instanceId) {
+    if (!instanceId) return [];
+    return getActiveAudio()?.tracks.flatMap((track) => track.clips).filter(
         (clip) => clip.object_instance_id === instanceId,
-    ) || null;
+    ) || [];
+}
+
+function getObjectClip(instanceId) {
+    const clips = getObjectClips(instanceId);
+    return clips.find((clip) => clip.is_primary !== false) || clips[0] || null;
 }
 
 function isBackgroundSelection(object = selectedCanvasObject) {
@@ -392,14 +408,26 @@ function getSelectedObjectAudioKey(object, options) {
     return null;
 }
 
-function createObjectAudioOption(option, selectedKey) {
+function createObjectAudioOption(
+    option,
+    selectedKey,
+    recommendedKey = null,
+    addedAudioKeys = new Set(),
+) {
     const isSilent = option === null;
     const audioKey = isSilent ? null : option.audio_key;
     const label = isSilent ? t("audioPicker.silent") : option.name;
+    const group = document.createElement("div");
+    group.className = "object-audio-option-group";
+    group.classList.toggle("is-added", !isSilent && addedAudioKeys.has(audioKey));
     const button = document.createElement("button");
     button.type = "button";
     button.className = "object-audio-option";
     button.classList.toggle("is-active", audioKey === selectedKey);
+    button.classList.toggle(
+        "is-ai-recommended",
+        !isSilent && audioKey === recommendedKey,
+    );
     button.disabled = isChangingObjectAudio || isAIPreviewLocked;
     button.setAttribute("aria-pressed", String(audioKey === selectedKey));
     button.title = label;
@@ -413,7 +441,21 @@ function createObjectAudioOption(option, selectedKey) {
     text.textContent = label;
     button.append(icon, text);
     button.addEventListener("click", () => changeSelectedObjectAudio(option));
-    return button;
+    group.append(button);
+
+    if (!isSilent && !isBackgroundSelection()) {
+        const addButton = document.createElement("button");
+        const addLabel = t("audio.addOption", { name: label });
+        addButton.type = "button";
+        addButton.className = "object-audio-option-add";
+        addButton.textContent = "+";
+        addButton.title = addLabel;
+        addButton.setAttribute("aria-label", addLabel);
+        addButton.disabled = isChangingObjectAudio || isAIPreviewLocked;
+        addButton.addEventListener("click", () => addSelectedObjectAudio(option));
+        group.append(addButton);
+    }
+    return group;
 }
 
 function renderObjectAudioPicker() {
@@ -430,6 +472,10 @@ function renderObjectAudioPicker() {
     const asset = localizedAssetsByKey.get(object.asset_key);
     const iconName = asset?.name || object.label || object.asset_key;
     const selectedKey = getSelectedObjectAudioKey(object, options);
+    const addedAudioKeys = new Set(
+        getObjectClips(object.instance_id).map((clip) => clip.audio_key).filter(Boolean),
+    );
+    const recommendedKey = aiRecommendedAudioByAssetKey.get(object.asset_key) || null;
     const selectedOption = options.find((option) => option.audio_key === selectedKey);
     const selectedName = selectedOption?.name || t("audioPicker.silent");
     if (objectAudioCurrent) objectAudioCurrent.textContent = selectedName;
@@ -444,8 +490,13 @@ function renderObjectAudioPicker() {
         });
     }
     objectAudioOptions?.replaceChildren(
-        ...options.map((option) => createObjectAudioOption(option, selectedKey)),
-        createObjectAudioOption(null, selectedKey),
+        ...options.map((option) => createObjectAudioOption(
+            option,
+            selectedKey,
+            recommendedKey,
+            addedAudioKeys,
+        )),
+        createObjectAudioOption(null, selectedKey, recommendedKey, addedAudioKeys),
     );
     objectAudioPicker.hidden = false;
 }
@@ -512,7 +563,11 @@ async function changeSelectedObjectAudio(option) {
                 ?.getBoundingClientRect().width;
             const derivedAudio = isBackground
                 ? { volume: 1, pan: 0 }
-                : deriveAudioFromObject(object, canvasWidth);
+                : deriveAudioFromObject(
+                    object,
+                    canvasWidth,
+                    existingClip?.base_volume ?? 1,
+                );
             const clip = existingClip || normalizeClip({
                 clip_id: createInstanceId(),
                 object_instance_id: object.instance_id,
@@ -523,13 +578,16 @@ async function changeSelectedObjectAudio(option) {
                     0,
                 ),
                 volume: derivedAudio.volume,
+                base_volume: derivedAudio.base_volume,
                 pan: derivedAudio.pan,
                 audio_url: option.audio_url,
                 source_duration: duration,
                 trim_start: 0,
                 trim_end: duration,
                 duration,
+                is_primary: true,
             });
+            clip.is_primary = true;
             clip.audio_key = option.audio_key;
             clip.audio_url = option.audio_url;
             clip.name = option.name;
@@ -539,9 +597,11 @@ async function changeSelectedObjectAudio(option) {
             clip.duration = duration;
             clip.effects = createDefaultEffects();
             audio.tracks.forEach((audioTrack) => {
-                audioTrack.clips = audioTrack.clips.filter(
-                    (candidate) => candidate.object_instance_id !== object.instance_id,
-                );
+                audioTrack.clips = audioTrack.clips.filter((candidate) => (
+                    isBackground
+                        ? candidate.object_instance_id !== object.instance_id
+                        : candidate.clip_id !== existingClip?.clip_id
+                ));
             });
             track.clips.push(clip);
         }
@@ -567,6 +627,84 @@ async function changeSelectedObjectAudio(option) {
     }
 }
 
+async function addSelectedObjectAudio(option) {
+    const object = selectedCanvasObject;
+    if (
+        !option?.audio_url
+        || !object?.instance_id
+        || isBackgroundSelection(object)
+        || isChangingObjectAudio
+        || isAIPreviewLocked
+    ) return;
+
+    const revision = ++objectAudioChoiceRevision;
+    isChangingObjectAudio = true;
+    setObjectAudioError(t("audioPicker.switching"));
+    renderObjectAudioPicker();
+    try {
+        const buffer = await loadAudioBuffer(option.audio_url);
+        if (
+            revision !== objectAudioChoiceRevision
+            || selectedCanvasObject?.instance_id !== object.instance_id
+            || activeContext?.stepId !== object.selectionStepId
+        ) return;
+        const audio = getActiveAudio();
+        const track = getTrack(audio, "effects");
+        if (!audio || !track) return;
+        const primaryClip = getObjectClip(object.instance_id);
+        const canvasWidth = document.querySelector("[data-canvas-paper]")
+            ?.getBoundingClientRect().width;
+        const derivedAudio = deriveAudioFromObject(
+            object,
+            canvasWidth,
+            primaryClip?.base_volume ?? 1,
+        );
+        const duration = Math.max(0.1, buffer.duration);
+        const startTime = track.clips.reduce(
+            (maximum, candidate) => Math.max(
+                maximum,
+                candidate.start_time + candidate.duration,
+            ),
+            0,
+        );
+        const clip = normalizeClip({
+            clip_id: createInstanceId(),
+            object_instance_id: object.instance_id,
+            asset_id: object.asset_id,
+            asset_key: object.asset_key,
+            audio_key: option.audio_key,
+            is_primary: false,
+            name: option.name,
+            audio_url: option.audio_url,
+            start_time: startTime,
+            source_duration: duration,
+            trim_start: 0,
+            trim_end: duration,
+            duration,
+            effects: createDefaultEffects(),
+            ...derivedAudio,
+        });
+        notifyHistoryCheckpoint();
+        haltPlayback();
+        track.clips.push(clip);
+        previousClipEditSnapshot = null;
+        renderAudio();
+        selectEditableClip(clip.clip_id);
+        renderObjectAudioPicker();
+        notifyAudioChanged();
+        setObjectAudioError();
+    } catch {
+        if (revision === objectAudioChoiceRevision) {
+            setObjectAudioError(t("audioPicker.failed"));
+        }
+    } finally {
+        if (revision === objectAudioChoiceRevision) {
+            isChangingObjectAudio = false;
+            renderObjectAudioPicker();
+        }
+    }
+}
+
 function getSelectedEditableClip() {
     if (!selectedClipId) return null;
     return getActiveAudio()?.tracks
@@ -582,13 +720,35 @@ function getSelectedNarrationClip() {
     ) || null;
 }
 
-function getSelectedBackgroundClip() {
-    const clip = getSelectedEditableClip();
-    return clip?.object_instance_id === BACKGROUND_AUDIO_INSTANCE_ID ? clip : null;
+function isBackgroundAudioClip(clip) {
+    return clip?.object_instance_id === BACKGROUND_AUDIO_INSTANCE_ID;
+}
+
+function getSelectedVolumeClip() {
+    return getSelectedEditableClip();
+}
+
+function getClipVolumeControlValue(clip) {
+    if (!clip) return 0;
+    if (isBackgroundAudioClip(clip)) {
+        return Math.min(2, Math.max(0, Number(clip.volume) || 0));
+    }
+    const scale = Math.max(
+        0.01,
+        Number(objectScaleByInstanceId.get(clip.object_instance_id)) || 1,
+    );
+    if (
+        clip.base_volume === null
+        || clip.base_volume === undefined
+        || !Number.isFinite(Number(clip.base_volume))
+    ) {
+        clip.base_volume = Math.min(2, Math.max(0, (Number(clip.volume) || 0) / scale));
+    }
+    return Math.min(2, Math.max(0, Number(clip.base_volume) || 0));
 }
 
 function updateBackgroundVolumeControl() {
-    const clip = getSelectedBackgroundClip();
+    const clip = getSelectedVolumeClip();
     if (!backgroundVolumeControl) return;
     backgroundVolumeControl.hidden = !clip;
     if (!clip) {
@@ -598,7 +758,19 @@ function updateBackgroundVolumeControl() {
         if (backgroundVolumeOutput) backgroundVolumeOutput.hidden = false;
         return;
     }
-    const volume = Math.min(2, Math.max(0, Number(clip.volume) || 0));
+    const volume = getClipVolumeControlValue(clip);
+    const isBackground = isBackgroundAudioClip(clip);
+    const labelKey = isBackground ? "audio.backgroundVolume" : "audio.iconBaseVolume";
+    const adjustKey = isBackground
+        ? "audio.backgroundVolumeAdjust"
+        : "audio.iconBaseVolumeAdjust";
+    if (backgroundVolumeLabel) backgroundVolumeLabel.textContent = t(labelKey);
+    [backgroundVolumeInput, backgroundVolumeNumberInput, backgroundVolumeOutput]
+        .filter(Boolean)
+        .forEach((element) => {
+            element.setAttribute("aria-label", t(adjustKey));
+            element.title = t(adjustKey);
+        });
     if (backgroundVolumeInput && !isEditingBackgroundVolume) {
         backgroundVolumeInput.value = String(volume);
     }
@@ -616,7 +788,7 @@ function updateBackgroundVolumeControl() {
 }
 
 function beginBackgroundVolumeNumberEdit() {
-    const clip = getSelectedBackgroundClip();
+    const clip = getSelectedVolumeClip();
     if (
         !clip
         || isAIPreviewLocked
@@ -625,7 +797,7 @@ function beginBackgroundVolumeNumberEdit() {
     ) return;
     isEditingBackgroundVolumeNumber = true;
     backgroundVolumeNumberInput.value = String(
-        Math.round(Math.min(2, Math.max(0, Number(clip.volume) || 0)) * 100),
+        Math.round(getClipVolumeControlValue(clip) * 100),
     );
     backgroundVolumeOutput.hidden = true;
     backgroundVolumeNumberInput.hidden = false;
@@ -653,7 +825,7 @@ function finishBackgroundVolumeNumberEdit({ commit = true } = {}) {
 }
 
 function beginBackgroundVolumeEdit() {
-    const clip = getSelectedBackgroundClip();
+    const clip = getSelectedVolumeClip();
     if (isEditingBackgroundVolume || !clip || isAIPreviewLocked) return;
     isEditingBackgroundVolume = true;
     backgroundVolumeChanged = false;
@@ -661,6 +833,7 @@ function beginBackgroundVolumeEdit() {
         clipId: clip.clip_id,
         effects: cloneEffects(clip.effects),
         volume: clip.volume,
+        baseVolume: clip.base_volume,
     };
     notifyHistoryCheckpoint();
 }
@@ -675,11 +848,23 @@ function commitBackgroundVolumeEdit() {
 }
 
 function setSelectedBackgroundVolume(value) {
-    const clip = getSelectedBackgroundClip();
+    const clip = getSelectedVolumeClip();
     if (!clip || isAIPreviewLocked) return;
-    const volume = Math.min(2, Math.max(0, Number(value) || 0));
-    if (clip.volume === volume) return;
+    const controlVolume = Math.min(2, Math.max(0, Number(value) || 0));
+    const isBackground = isBackgroundAudioClip(clip);
+    const scale = isBackground
+        ? 1
+        : Math.max(
+            0.01,
+            Number(objectScaleByInstanceId.get(clip.object_instance_id)) || 1,
+        );
+    const volume = Math.min(2, Math.max(0, controlVolume * scale));
+    if (
+        clip.volume === volume
+        && (isBackground || clip.base_volume === controlVolume)
+    ) return;
     if (!isEditingBackgroundVolume) beginBackgroundVolumeEdit();
+    if (!isBackground) clip.base_volume = controlVolume;
     clip.volume = volume;
     backgroundVolumeChanged = true;
     const nodes = activeClipNodes.get(clip.clip_id);
@@ -687,7 +872,7 @@ function setSelectedBackgroundVolume(value) {
         nodes.gain.gain.setTargetAtTime(volume, audioContext.currentTime, 0.015);
     }
     if (backgroundVolumeOutput) {
-        backgroundVolumeOutput.value = `${Math.round(volume * 100)}%`;
+        backgroundVolumeOutput.value = `${Math.round(controlVolume * 100)}%`;
         backgroundVolumeOutput.textContent = backgroundVolumeOutput.value;
     }
 }
@@ -724,12 +909,26 @@ function updateEffectControls() {
         const hasEnabledEffect = Boolean(selectedClip) && Object.values(
             selectedClip.effects,
         ).some((effect) => effect.enabled);
-        const canResetBackgroundVolume =
-            selectedClip?.object_instance_id === BACKGROUND_AUDIO_INSTANCE_ID
-            && selectedClip.volume !== 1;
+        const canResetVolume = Boolean(selectedClip) && (
+            isBackgroundAudioClip(selectedClip)
+                ? selectedClip.volume !== 1
+                : getClipVolumeControlValue(selectedClip) !== 1
+        );
         effectResetButton.disabled =
             !selectedClip
-            || (!hasEnabledEffect && !canResetBackgroundVolume)
+            || (!hasEnabledEffect && !canResetVolume)
+            || isAIPreviewLocked;
+    }
+    if (duplicateClipButton) {
+        duplicateClipButton.disabled =
+            !selectedClip
+            || isBackgroundAudioClip(selectedClip)
+            || isAIPreviewLocked;
+    }
+    if (deleteClipButton) {
+        deleteClipButton.disabled =
+            !selectedClip
+            || isBackgroundAudioClip(selectedClip)
             || isAIPreviewLocked;
     }
     updateBackgroundVolumeControl();
@@ -765,6 +964,7 @@ function mutateSelectedEffects(mutator) {
         clipId: clip.clip_id,
         effects: cloneEffects(clip.effects),
         volume: clip.volume,
+        baseVolume: clip.base_volume,
     };
     notifyHistoryCheckpoint();
     haltPlayback();
@@ -1450,12 +1650,13 @@ function beginTrimDrag(event, clip, element) {
     window.addEventListener("pointerup", onEnd, { once: true });
 }
 
-function deriveAudioFromObject(object, canvasWidth) {
+function deriveAudioFromObject(object, canvasWidth, baseVolume = 1) {
     const scale = Math.max(0.35, Number(object?.scale) || 1);
     const safeWidth = Math.max(1, Number(canvasWidth) || 1);
     const x = Math.min(safeWidth, Math.max(0, Number(object?.x) || 0));
     return {
-        volume: Math.min(2, Math.max(0.5, 0.5 + (scale - 0.35) / (3 - 0.35) * 1.5)),
+        base_volume: Math.min(2, Math.max(0, Number(baseVolume) || 0)),
+        volume: Math.min(2, Math.max(0, (Number(baseVolume) || 0) * scale)),
         pan: Math.min(1, Math.max(-1, x / safeWidth * 2 - 1)),
     };
 }
@@ -1463,11 +1664,19 @@ function deriveAudioFromObject(object, canvasWidth) {
 function syncClipToObject(object, canvasWidth) {
     const audio = getActiveAudio();
     if (!audio || !object?.instance_id) return false;
-    const derived = deriveAudioFromObject(object, canvasWidth);
+    const scale = Math.max(0.35, Number(object.scale) || 1);
+    objectScaleByInstanceId.set(object.instance_id, scale);
     let changed = false;
     audio.tracks.forEach((track) => {
         track.clips.forEach((clip) => {
             if (clip.object_instance_id !== object.instance_id) return;
+            const baseVolume = clip.base_volume !== null
+                && clip.base_volume !== undefined
+                && Number.isFinite(Number(clip.base_volume))
+                ? Math.min(2, Math.max(0, Number(clip.base_volume)))
+                : Math.min(2, Math.max(0, (Number(clip.volume) || 0) / scale));
+            clip.base_volume = baseVolume;
+            const derived = deriveAudioFromObject(object, canvasWidth, baseVolume);
             changed = changed || clip.volume !== derived.volume || clip.pan !== derived.pan;
             clip.volume = derived.volume;
             clip.pan = derived.pan;
@@ -1518,6 +1727,10 @@ async function handleCanvasObjectAdded(detail) {
     if (!object?.audio_url || !activeContext || detail.context?.stepId !== activeContext.stepId) {
         return;
     }
+    objectScaleByInstanceId.set(
+        object.instance_id,
+        Math.max(0.35, Number(object.scale) || 1),
+    );
     const audio = getActiveAudio();
     const track = getTrack(audio, detail.trackId || "effects");
     if (!audio || !track) return;
@@ -1543,6 +1756,7 @@ async function handleCanvasObjectAdded(detail) {
         audio_key: object.selected_audio_key !== undefined
             ? object.selected_audio_key
             : matchedAudioOption?.audio_key ?? null,
+        is_primary: true,
         name: object.label || object.asset_key,
         audio_url: object.audio_url,
         start_time: startTime,
@@ -1627,6 +1841,7 @@ async function handleCanvasBackgroundChanged(detail) {
 
 function handleCanvasObjectDeleted(detail) {
     if (!activeContext || detail.context?.stepId !== activeContext.stepId) return;
+    objectScaleByInstanceId.delete(detail.object?.instance_id);
     if (selectedCanvasObject?.instance_id === detail.object?.instance_id) {
         clearObjectAudioSelection();
     }
@@ -1659,6 +1874,7 @@ async function handleCanvasObjectsReplaced(detail) {
     }
     haltPlayback();
     currentTime = 0;
+    objectScaleByInstanceId.clear();
     audio.tracks.forEach((track) => {
         track.clips = track.clips.filter(
             (clip) => (
@@ -1693,6 +1909,7 @@ export function activateDraftAudio(context) {
     clearEffectsSelection();
     clearObjectAudioSelection();
     currentTime = 0;
+    objectScaleByInstanceId.clear();
     const key = getAudioKey(null, context.stepId);
     activeContext = { ...context, projectId: null };
     if (!audioCache.has(key)) audioCache.set(key, createEmptyAudio());
@@ -1707,6 +1924,7 @@ export function showRemoteAudioLoading(context, projectId) {
     clearEffectsSelection();
     clearObjectAudioSelection();
     currentTime = 0;
+    objectScaleByInstanceId.clear();
     activeContext = { ...context, projectId };
     activeAudioKey = getAudioKey(projectId, context.stepId);
     if (status) status.textContent = t("audio.loading");
@@ -1719,6 +1937,7 @@ export function showRemoteAudioLoading(context, projectId) {
 
 export function restoreRemoteAudio(context, projectId, audio) {
     resetTrackMutes();
+    objectScaleByInstanceId.clear();
     const key = getAudioKey(projectId, context.stepId);
     activeContext = { ...context, projectId };
     audioCache.set(key, normalizeAudio(audio));
@@ -1788,6 +2007,8 @@ export function clearAudioCache() {
     processedAIBackgroundResponses.clear();
     currentTime = 0;
     audioCache.clear();
+    aiRecommendedAudioByAssetKey.clear();
+    objectScaleByInstanceId.clear();
     activeContext = null;
     activeAudioKey = null;
     isAIPreviewLocked = false;
@@ -1844,12 +2065,14 @@ effectUndoButton?.addEventListener("click", () => {
     notifyHistoryCheckpoint();
     haltPlayback();
     clip.effects = normalizeEffects(snapshot.effects);
-    if (
-        clip.object_instance_id === BACKGROUND_AUDIO_INSTANCE_ID
-        && Number.isFinite(Number(snapshot.volume))
-    ) {
+    if (Number.isFinite(Number(snapshot.volume))) {
         clip.volume = Math.min(2, Math.max(0, Number(snapshot.volume)));
     }
+    clip.base_volume = snapshot.baseVolume !== null
+        && snapshot.baseVolume !== undefined
+        && Number.isFinite(Number(snapshot.baseVolume))
+        ? Math.min(2, Math.max(0, Number(snapshot.baseVolume)))
+        : clip.base_volume;
     renderAudio();
     notifyAudioChanged();
 });
@@ -1857,18 +2080,87 @@ effectResetButton?.addEventListener("click", () => {
     const clip = getSelectedEditableClip();
     if (!clip || isAIPreviewLocked) return;
     const hasEnabledEffect = Object.values(clip.effects).some((effect) => effect.enabled);
-    const shouldResetBackgroundVolume =
-        clip.object_instance_id === BACKGROUND_AUDIO_INSTANCE_ID
-        && clip.volume !== 1;
-    if (!hasEnabledEffect && !shouldResetBackgroundVolume) return;
+    const shouldResetVolume = isBackgroundAudioClip(clip)
+        ? clip.volume !== 1
+        : getClipVolumeControlValue(clip) !== 1;
+    if (!hasEnabledEffect && !shouldResetVolume) return;
     mutateSelectedEffects((effects, selectedClip) => {
         Object.values(effects).forEach((effect) => {
             effect.enabled = false;
         });
-        if (selectedClip.object_instance_id === BACKGROUND_AUDIO_INSTANCE_ID) {
+        if (isBackgroundAudioClip(selectedClip)) {
             selectedClip.volume = 1;
+        } else {
+            selectedClip.base_volume = 1;
+            const scale = Math.max(
+                0.01,
+                Number(objectScaleByInstanceId.get(selectedClip.object_instance_id)) || 1,
+            );
+            selectedClip.volume = Math.min(2, scale);
         }
     });
+});
+duplicateClipButton?.addEventListener("click", () => {
+    const clip = getSelectedEditableClip();
+    if (!clip || isBackgroundAudioClip(clip) || isAIPreviewLocked) return;
+    const track = getTrack(getActiveAudio(), "effects");
+    if (!track) return;
+    notifyHistoryCheckpoint();
+    haltPlayback();
+    const duplicate = normalizeClip({
+        ...clip,
+        clip_id: createInstanceId(),
+        is_primary: false,
+        start_time: clip.start_time + clip.duration,
+        effects: cloneEffects(clip.effects),
+    });
+    track.clips.push(duplicate);
+    previousClipEditSnapshot = null;
+    renderAudio();
+    selectEditableClip(duplicate.clip_id);
+    renderObjectAudioPicker();
+    notifyAudioChanged();
+});
+deleteClipButton?.addEventListener("click", () => {
+    const clip = getSelectedEditableClip();
+    const audio = getActiveAudio();
+    if (!clip || !audio || isBackgroundAudioClip(clip) || isAIPreviewLocked) return;
+    notifyHistoryCheckpoint();
+    haltPlayback();
+    audio.tracks.forEach((track) => {
+        track.clips = track.clips.filter(
+            (candidate) => candidate.clip_id !== clip.clip_id,
+        );
+    });
+
+    if (clip.is_primary !== false) {
+        const promotedClip = getObjectClips(clip.object_instance_id)[0] || null;
+        if (promotedClip) promotedClip.is_primary = true;
+        const object = {
+            instance_id: clip.object_instance_id,
+            asset_key: clip.asset_key,
+        };
+        const option = promotedClip
+            ? {
+                audio_key: promotedClip.audio_key,
+                audio_url: promotedClip.audio_url,
+            }
+            : null;
+        notifyCanvasObjectAudioChoice(object, option);
+        if (selectedCanvasObject?.instance_id === clip.object_instance_id) {
+            selectedCanvasObject = {
+                ...selectedCanvasObject,
+                selected_audio_key: option?.audio_key ?? null,
+                audio_url: option?.audio_url ?? null,
+            };
+        }
+    }
+
+    selectedClipId = null;
+    previousClipEditSnapshot = null;
+    renderAudio();
+    renderObjectAudioPicker();
+    notifyAudioChanged();
 });
 backgroundVolumeInput?.addEventListener("input", (event) => {
     setSelectedBackgroundVolume(event.currentTarget.value);
@@ -1948,6 +2240,10 @@ window.addEventListener("puzzle-audiobook:canvas-object-selected", (event) => {
     ) {
         selectedCanvasObject = null;
     } else {
+        objectScaleByInstanceId.set(
+            event.detail.object.instance_id,
+            Math.max(0.35, Number(event.detail.object.scale) || 1),
+        );
         selectedCanvasObject = {
             ...event.detail.object,
             selectionStepId: event.detail.context.stepId,
@@ -1982,6 +2278,24 @@ window.addEventListener("puzzle-audiobook:canvas-background-selected", (event) =
             ? "audio"
             : "ai",
     );
+});
+window.addEventListener("puzzle-audiobook:asset-suggestions", (event) => {
+    aiRecommendedAudioByAssetKey.clear();
+    const suggestions = Array.isArray(event.detail?.audioSuggestions)
+        ? event.detail.audioSuggestions
+        : [];
+    suggestions.forEach((suggestion) => {
+        if (
+            typeof suggestion?.asset_key === "string"
+            && typeof suggestion?.selected_audio_key === "string"
+        ) {
+            aiRecommendedAudioByAssetKey.set(
+                suggestion.asset_key,
+                suggestion.selected_audio_key,
+            );
+        }
+    });
+    renderObjectAudioPicker();
 });
 window.addEventListener("puzzle-audiobook:canvas-object-deleted", (event) => {
     handleCanvasObjectDeleted(event.detail);

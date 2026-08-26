@@ -1,22 +1,22 @@
-import { request } from "./api.js?v=20260826-2";
-import { getLanguage, t } from "./i18n.js?v=20260826-2";
+import { request } from "./api.js?v=20260826-6";
+import { getLanguage, t } from "./i18n.js?v=20260826-6";
 import {
     getActiveCanvasContext,
     getActiveCanvasSnapshot,
     replaceActiveCanvasFromAI,
     restoreActiveCanvasSnapshot,
     setCanvasAIPreviewLocked,
-} from "./canvas.js?v=20260826-2";
+} from "./canvas.js?v=20260826-6";
 import {
     getActiveAudioSnapshot,
     restoreActiveAudioSnapshot,
     setAudioAIPreviewLocked,
-} from "./audio.js?v=20260826-2";
+} from "./audio.js?v=20260826-6";
 import {
     acceptAIPreview,
     beginAIPreview,
     rejectAIPreview,
-} from "./projects.js?v=20260826-2";
+} from "./projects.js?v=20260826-6";
 
 const form = document.querySelector("[data-ai-question-form]");
 const input = document.querySelector("[data-ai-question-input]");
@@ -47,10 +47,18 @@ function createAudioForAI(audio) {
                 ...track,
                 clips: Array.isArray(track?.clips)
                     ? track.clips.map((clip) => {
+                        const {
+                            base_volume: _baseVolume,
+                            is_primary: _isPrimary,
+                            ...clipWithoutBaseVolume
+                        } = clip;
                         if (clip?.object_instance_id !== BACKGROUND_AUDIO_INSTANCE_ID) {
-                            return { ...clip };
+                            return clipWithoutBaseVolume;
                         }
-                        const { volume: _backgroundVolume, ...clipWithoutVolume } = clip;
+                        const {
+                            volume: _backgroundVolume,
+                            ...clipWithoutVolume
+                        } = clipWithoutBaseVolume;
                         return clipWithoutVolume;
                     })
                     : [],
@@ -59,9 +67,14 @@ function createAudioForAI(audio) {
     };
 }
 
-function publishSuggestedAssets(assetKeys = []) {
+function publishSuggestedAssets(assetKeys = [], audioSuggestions = []) {
     window.dispatchEvent(new CustomEvent("puzzle-audiobook:asset-suggestions", {
-        detail: { assetKeys: [...assetKeys] },
+        detail: {
+            assetKeys: [...assetKeys],
+            audioSuggestions: Array.isArray(audioSuggestions)
+                ? audioSuggestions.map((suggestion) => ({ ...suggestion }))
+                : [],
+        },
     }));
 }
 
@@ -294,7 +307,7 @@ form?.addEventListener("submit", async (event) => {
                 ...iconKeys,
                 ...(backgroundKey ? [backgroundKey] : []),
             ])];
-            publishSuggestedAssets(suggestedKeys);
+            publishSuggestedAssets(suggestedKeys, result.output?.audio_suggestions);
             const reasoning = typeof result.output?.reasoning === "string"
                 ? result.output.reasoning.trim()
                 : "";

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="AI 辅助空间拼贴式有声绘本创作工作台" data-i18n-content="app.description">
     <title>有声绘本工作台</title>
-    <link rel="stylesheet" href="/static/css/app.css?v=20260825-4">
+    <link rel="stylesheet" href="/static/css/app.css?v=20260826-4">
 </head>
 <body data-i18n-title="app.title">
     <div class="app-shell">
@@ -200,8 +200,10 @@
                             <span class="audio-effect-divider" aria-hidden="true"></span>
                             <button type="button" class="is-secondary" data-audio-effect-undo data-i18n="audio.effectUndo" disabled>撤销</button>
                             <button type="button" class="is-secondary" data-audio-effect-reset data-i18n="audio.effectReset" disabled>还原</button>
+                            <button type="button" class="is-secondary" data-audio-duplicate data-i18n="audio.duplicate" disabled>复制</button>
+                            <button type="button" class="is-secondary" data-audio-delete data-i18n="audio.deleteClip" disabled>删除音频</button>
                             <div class="background-volume-control" data-background-volume-control hidden>
-                                <span data-i18n="audio.backgroundVolume">背景音量</span>
+                                <span data-background-volume-label data-i18n="audio.backgroundVolume">背景音量</span>
                                 <input
                                     class="background-volume-slider"
                                     type="range"
@@ -388,12 +390,12 @@
         </div>
     </dialog>
 
-    <script type="module" src="/static/js/i18n.js?v=20260826-2"></script>
-    <script type="module" src="/static/js/stories.js?v=20260826-2"></script>
-    <script type="module" src="/static/js/projects.js?v=20260826-2"></script>
-    <script type="module" src="/static/js/auth.js?v=20260826-2"></script>
-    <script type="module" src="/static/js/ai_questions.js?v=20260826-2"></script>
-    <script type="module" src="/static/js/assets.js?v=20260826-2"></script>
-    <script type="module" src="/static/js/audio.js?v=20260826-2"></script>
+    <script type="module" src="/static/js/i18n.js?v=20260826-6"></script>
+    <script type="module" src="/static/js/stories.js?v=20260826-6"></script>
+    <script type="module" src="/static/js/projects.js?v=20260826-6"></script>
+    <script type="module" src="/static/js/auth.js?v=20260826-6"></script>
+    <script type="module" src="/static/js/ai_questions.js?v=20260826-6"></script>
+    <script type="module" src="/static/js/assets.js?v=20260826-6"></script>
+    <script type="module" src="/static/js/audio.js?v=20260826-6"></script>
 </body>
 </html>

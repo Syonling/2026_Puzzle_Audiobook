@@ -197,6 +197,68 @@ async def get_answer(request:AIQuestionRequest,
         ) from error
 
     if state["decision"] == "suggestion":
+        audio_suggestions = state["output"].get(
+            "audio_suggestions",
+            [],
+        )
+        suggested_audio_keys = list(dict.fromkeys(
+            suggestion["selected_audio_key"]
+            for suggestion in audio_suggestions
+            if suggestion.get("selected_audio_key")
+        ))
+        audio_by_key = {}
+        if suggested_audio_keys:
+            placeholders = ", ".join(
+                "?" for _ in suggested_audio_keys
+            )
+            try:
+                rows = db.execute(
+                    f"""
+                    SELECT
+                        a.asset_key,
+                        aao.audio_key,
+                        aao.audio_url
+                    FROM asset_audio_options AS aao
+                    JOIN assets AS a
+                        ON a.id = aao.asset_id
+                    WHERE aao.audio_key IN ({placeholders})
+                    """,
+                    suggested_audio_keys,
+                ).fetchall()
+            except sqlite3.DatabaseError as error:
+                logger.exception(
+                    "Failed to resolve suggested audio options | "
+                    "audio_keys=%s",
+                    suggested_audio_keys,
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to get suggested audio information",
+                ) from error
+            audio_by_key = {
+                row["audio_key"]: row
+                for row in rows
+            }
+
+        for suggestion in audio_suggestions:
+            audio_key = suggestion.get("selected_audio_key")
+            audio = audio_by_key.get(audio_key)
+            if (
+                audio is None
+                or audio["asset_key"] != suggestion.get("asset_key")
+            ):
+                logger.error(
+                    "Suggested audio option does not belong to asset | "
+                    "asset_key=%s | audio_key=%s",
+                    suggestion.get("asset_key"),
+                    audio_key,
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail="Suggested audio data is invalid",
+                )
+            suggestion["audio_url"] = audio["audio_url"]
+
         logger.info(
             "AI suggestion ready | user_id=%s | icons=%d | "
             "audio_suggestions=%d | background=%s",
@@ -324,14 +386,27 @@ async def get_answer(request:AIQuestionRequest,
 
         background_key = state["output"]["background_key"]
         if background_key:
+            selected_background_audio_key = state["output"].get(
+                "selected_background_audio_key"
+            )
             try:
                 row = db.execute(
                     """
-                    SELECT image_url, audio_url
-                    FROM assets
-                    WHERE asset_key = ?
+                    SELECT
+                        a.image_url,
+                        aao.audio_key,
+                        aao.audio_url
+                    FROM assets AS a
+                    LEFT JOIN asset_audio_options AS aao
+                        ON aao.asset_id = a.id
+                       AND aao.audio_key = ?
+                    WHERE a.asset_key = ?
+                      AND a.category = 'background'
                     """,
-                    (background_key,),
+                    (
+                        selected_background_audio_key,
+                        background_key,
+                    ),
                 ).fetchone()
             except sqlite3.DatabaseError as error:
                 logger.exception("Failed to get generated background information")
@@ -350,12 +425,29 @@ async def get_answer(request:AIQuestionRequest,
                     detail="Generated background data is invalid",
                 )
 
+            if (
+                selected_background_audio_key is not None
+                and row["audio_key"] is None
+            ):
+                logger.error(
+                    "Generated background audio option is invalid | "
+                    "background_key=%s | audio_key=%s",
+                    background_key,
+                    selected_background_audio_key,
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail="Generated background audio data is invalid",
+                )
+
             state["output"]["background"] = {
                 "asset_key": background_key,
                 "image_url": row["image_url"],
+                "selected_audio_key": row["audio_key"],
                 "audio_url": row["audio_url"],
                 "audio_enabled": bool(
                     state["output"].get("background_audio_enabled")
+                    and row["audio_key"]
                     and row["audio_url"]
                 ),
                 "start_offset_seconds": state["output"].get(

@@ -1,5 +1,5 @@
-import { request } from "./api.js?v=20260826-2";
-import { t } from "./i18n.js?v=20260826-2";
+import { request } from "./api.js?v=20260826-6";
+import { t } from "./i18n.js?v=20260826-6";
 
 const searchInput = document.querySelector("[data-asset-search]");
 const categoryList = document.querySelector("[data-asset-categories]");
@@ -14,6 +14,7 @@ let assets = [];
 let selectedCategory = "";
 let keyword = "";
 let suggestedAssetKeys = new Set();
+let suggestedAudioByAssetKey = new Map();
 let assetRequestRevision = 0;
 let currentPage = 1;
 
@@ -62,25 +63,36 @@ function createAssetItem(asset, isSuggestion = false) {
     item.dataset.assetKey = asset.asset_key;
     item.classList.toggle("is-ai-suggested", isSuggestion);
     item.draggable = true;
-    item.title = t("library.drag", { name: asset.name });
-    if (asset.category === "background") {
+    item.title = isSuggestion
+        ? t("library.addRecommended", { name: asset.name })
+        : t("library.drag", { name: asset.name });
+    const audioSuggestion = isSuggestion
+        ? suggestedAudioByAssetKey.get(asset.asset_key) || null
+        : null;
+    if (asset.category === "background" || isSuggestion) {
         item.tabIndex = 0;
         item.setAttribute("role", "button");
-        const activateBackground = () => {
+        const activateAsset = () => {
             window.dispatchEvent(new CustomEvent("puzzle-audiobook:asset-activate", {
-                detail: { asset: { ...asset } },
+                detail: {
+                    asset: { ...asset },
+                    audioSuggestion: audioSuggestion ? { ...audioSuggestion } : null,
+                },
             }));
         };
-        item.addEventListener("click", activateBackground);
+        item.addEventListener("click", activateAsset);
         item.addEventListener("keydown", (event) => {
             if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
-                activateBackground();
+                activateAsset();
             }
         });
     }
     item.addEventListener("dragstart", (event) => {
-        const payload = JSON.stringify(asset);
+        const payload = JSON.stringify({
+            ...asset,
+            ai_audio_suggestion: audioSuggestion ? { ...audioSuggestion } : null,
+        });
         event.dataTransfer.effectAllowed = "copy";
         event.dataTransfer.setData(
             "application/x-puzzle-audiobook-asset",
@@ -256,11 +268,42 @@ searchInput?.addEventListener("input", (event) => {
     renderAssets();
 });
 
+suggestionList?.addEventListener("wheel", (event) => {
+    if (suggestionList.scrollWidth <= suggestionList.clientWidth) return;
+    const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY)
+        ? event.deltaX
+        : event.deltaY;
+    if (!delta) return;
+
+    const maxScrollLeft = suggestionList.scrollWidth - suggestionList.clientWidth;
+    const canScroll = delta < 0
+        ? suggestionList.scrollLeft > 0
+        : suggestionList.scrollLeft < maxScrollLeft - 1;
+    if (!canScroll) return;
+
+    event.preventDefault();
+    suggestionList.scrollLeft = Math.min(
+        maxScrollLeft,
+        Math.max(0, suggestionList.scrollLeft + delta),
+    );
+}, { passive: false });
+
 window.addEventListener("puzzle-audiobook:asset-suggestions", (event) => {
     const assetKeys = Array.isArray(event.detail?.assetKeys)
         ? event.detail.assetKeys.filter((assetKey) => typeof assetKey === "string")
         : [];
     suggestedAssetKeys = new Set(assetKeys);
+    const audioSuggestions = Array.isArray(event.detail?.audioSuggestions)
+        ? event.detail.audioSuggestions
+        : [];
+    suggestedAudioByAssetKey = new Map(
+        audioSuggestions
+            .filter((suggestion) => (
+                typeof suggestion?.asset_key === "string"
+                && typeof suggestion?.selected_audio_key === "string"
+            ))
+            .map((suggestion) => [suggestion.asset_key, { ...suggestion }]),
+    );
     renderSuggestedAssets();
 });
 
@@ -273,6 +316,7 @@ window.addEventListener("puzzle-audiobook:reset", () => {
     keyword = "";
     currentPage = 1;
     suggestedAssetKeys.clear();
+    suggestedAudioByAssetKey.clear();
     if (searchInput) searchInput.value = "";
     renderCategories();
     renderAssets();

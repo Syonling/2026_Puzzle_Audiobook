@@ -1,4 +1,4 @@
-import { t } from "./i18n.js?v=20260826-2";
+import { t } from "./i18n.js?v=20260826-6";
 
 const EMPTY_CANVAS = Object.freeze({
     objects: [],
@@ -496,17 +496,42 @@ function selectBackground() {
     }));
 }
 
-function addAssetToCanvas(asset, clientX, clientY) {
+function resolveAssetAudio(asset, audioSuggestion = null) {
+    const audioOptions = Array.isArray(asset.audio_options) ? asset.audio_options : [];
+    const recommendedAudio = audioSuggestion?.asset_key === asset.asset_key
+        ? audioOptions.find(
+            (option) => option.audio_key === audioSuggestion.selected_audio_key,
+        ) || null
+        : null;
+    const defaultAudio = audioOptions.find(
+        (option) => option.audio_key === asset.default_audio_key,
+    ) || audioOptions.find((option) => option.is_default === true) || null;
+    const selectedAudio = recommendedAudio || defaultAudio;
+    return {
+        audioKey: selectedAudio?.audio_key ?? asset.default_audio_key ?? null,
+        audioUrl: selectedAudio?.audio_url
+            ?? (recommendedAudio ? audioSuggestion?.audio_url : null)
+            ?? asset.audio_url
+            ?? null,
+        effects: recommendedAudio && audioSuggestion?.effects
+            && typeof audioSuggestion.effects === "object"
+                ? { ...audioSuggestion.effects }
+                : {},
+        startOffset: recommendedAudio
+            && Number.isFinite(Number(audioSuggestion?.start_offset_seconds))
+                ? Math.max(0, Number(audioSuggestion.start_offset_seconds))
+                : null,
+    };
+}
+
+function addAssetToCanvas(asset, clientX, clientY, audioSuggestion = null) {
     const canvas = getActiveCanvas();
     const paper = document.querySelector("[data-canvas-paper]");
     if (isAIPreviewLocked || !canvas || !activeContext || paper.classList.contains("is-loading")) return;
 
     notifyHistoryCheckpoint();
     const rect = paper.getBoundingClientRect();
-    const audioOptions = Array.isArray(asset.audio_options) ? asset.audio_options : [];
-    const defaultAudio = audioOptions.find(
-        (option) => option.audio_key === asset.default_audio_key,
-    ) || audioOptions.find((option) => option.is_default === true) || null;
+    const audioChoice = resolveAssetAudio(asset, audioSuggestion);
     const addedObject = {
         instance_id: createInstanceId(),
         asset_id: asset.id,
@@ -514,8 +539,10 @@ function addAssetToCanvas(asset, clientX, clientY) {
         asset_key: asset.asset_key,
         label: asset.name,
         image_url: asset.image_url,
-        audio_url: defaultAudio?.audio_url ?? asset.audio_url ?? null,
-        selected_audio_key: defaultAudio?.audio_key ?? asset.default_audio_key ?? null,
+        audio_url: audioChoice.audioUrl,
+        selected_audio_key: audioChoice.audioKey,
+        effects: audioChoice.effects,
+        start_offset_seconds: audioChoice.startOffset,
         x: clamp(clientX - rect.left, 0, rect.width),
         y: clamp(clientY - rect.top, 0, rect.height),
         scale: 1,
@@ -535,7 +562,21 @@ function addAssetToCanvas(asset, clientX, clientY) {
     }));
 }
 
-function applyBackgroundToCanvas(asset) {
+function addAssetToCanvasCenter(asset, audioSuggestion = null) {
+    const paper = document.querySelector("[data-canvas-paper]");
+    if (!paper) return;
+    const rect = paper.getBoundingClientRect();
+    const objectCount = getActiveCanvas()?.objects.length || 0;
+    const stagger = (objectCount % 5 - 2) * 18;
+    addAssetToCanvas(
+        asset,
+        rect.left + rect.width / 2 + stagger,
+        rect.top + rect.height / 2 + stagger,
+        audioSuggestion,
+    );
+}
+
+function applyBackgroundToCanvas(asset, audioSuggestion = null) {
     const canvas = getActiveCanvas();
     const paper = document.querySelector("[data-canvas-paper]");
     if (
@@ -549,16 +590,15 @@ function applyBackgroundToCanvas(asset) {
     ) return;
 
     notifyHistoryCheckpoint();
-    const audioOptions = Array.isArray(asset.audio_options) ? asset.audio_options : [];
-    const defaultAudio = audioOptions.find(
-        (option) => option.audio_key === asset.default_audio_key,
-    ) || audioOptions.find((option) => option.is_default === true) || null;
+    const audioChoice = resolveAssetAudio(asset, audioSuggestion);
     canvas.background_key = asset.asset_key;
     canvas.background = {
         asset_key: asset.asset_key,
         image_url: asset.image_url,
-        selected_audio_key: defaultAudio?.audio_key ?? asset.default_audio_key ?? null,
-        audio_url: defaultAudio?.audio_url ?? asset.audio_url ?? null,
+        selected_audio_key: audioChoice.audioKey,
+        audio_url: audioChoice.audioUrl,
+        start_offset_seconds: audioChoice.startOffset,
+        effects: audioChoice.effects,
     };
     selectObject(null);
     renderActiveCanvas();
@@ -572,8 +612,10 @@ function applyBackgroundToCanvas(asset) {
                 asset_key: asset.asset_key,
                 label: asset.name,
                 image_url: asset.image_url,
-                selected_audio_key: defaultAudio?.audio_key ?? asset.default_audio_key ?? null,
-                audio_url: defaultAudio?.audio_url ?? asset.audio_url ?? null,
+                selected_audio_key: audioChoice.audioKey,
+                audio_url: audioChoice.audioUrl,
+                start_offset_seconds: audioChoice.startOffset,
+                effects: audioChoice.effects,
             },
         },
     }));
@@ -840,8 +882,9 @@ paper?.addEventListener("drop", (event) => {
         || event.dataTransfer.getData("text/plain");
     try {
         const asset = JSON.parse(rawAsset);
-        if (asset?.category === "background") applyBackgroundToCanvas(asset);
-        else addAssetToCanvas(asset, event.clientX, event.clientY);
+        const audioSuggestion = asset?.ai_audio_suggestion || null;
+        if (asset?.category === "background") applyBackgroundToCanvas(asset, audioSuggestion);
+        else addAssetToCanvas(asset, event.clientX, event.clientY, audioSuggestion);
     } catch {
         // 忽略不是素材库产生的拖放数据。
     }
@@ -873,7 +916,12 @@ window.addEventListener("keydown", (event) => {
 });
 window.addEventListener("puzzle-audiobook:reset", resetCanvas);
 window.addEventListener("puzzle-audiobook:asset-activate", (event) => {
-    applyBackgroundToCanvas(event.detail?.asset);
+    const asset = event.detail?.asset;
+    if (asset?.category === "background") {
+        applyBackgroundToCanvas(asset, event.detail?.audioSuggestion);
+    } else if (asset) {
+        addAssetToCanvasCenter(asset, event.detail?.audioSuggestion);
+    }
 });
 window.addEventListener("puzzle-audiobook:language-change", renderActiveCanvas);
 window.addEventListener("puzzle-audiobook:localized-assets", (event) => {

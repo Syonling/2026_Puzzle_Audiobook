@@ -39,7 +39,7 @@ const messages = {
         "audio.noStep": "未选择步骤 · {time}", "audio.play": "播放", "audio.pause": "暂停", "audio.stop": "停止", "audio.split": "在播放头处切分旁白",
         "audio.narration": "旁白", "audio.narrationFixed": "固定旁白轨道，不接受手动拖入", "audio.background": "背景音频", "audio.effects": "素材音效", "audio.free": "自由轨道", "audio.seek": "拖动播放位置", "audio.muteTrack": "静音{track}轨道", "audio.unmuteTrack": "取消静音{track}轨道",
         "audio.clip": "音频", "audio.dragClip": "拖动音频块：{name}", "audio.fixedClip": "固定音频：{name}", "audio.trim": "拖动裁剪音频结尾", "audio.seconds": "{value}秒", "audio.clipDetail": "{name} · {duration}秒",
-        "audio.effectsControls": "音频效果处理", "audio.selectClip": "选择音频后添加效果", "audio.fadeIn": "淡入", "audio.fadeOut": "淡出", "audio.reverb": "空间", "audio.echo": "回声", "audio.effectUndo": "撤销", "audio.effectReset": "还原", "audio.backgroundVolume": "背景音量", "audio.backgroundVolumeAdjust": "调整背景音量",
+        "audio.effectsControls": "音频效果处理", "audio.selectClip": "选择音频后添加效果", "audio.fadeIn": "淡入", "audio.fadeOut": "淡出", "audio.reverb": "空间", "audio.echo": "回声", "audio.effectUndo": "撤销", "audio.effectReset": "还原", "audio.duplicate": "复制", "audio.deleteClip": "删除音频", "audio.addOption": "追加声音：{name}", "audio.backgroundVolume": "背景音量", "audio.backgroundVolumeAdjust": "调整背景音量", "audio.iconBaseVolume": "基础音量", "audio.iconBaseVolumeAdjust": "调整素材基础音量",
         "audio.unsupported": "当前浏览器不支持音频时间轴播放", "audio.fileFailed": "音频文件加载失败",
         "audio.preparing": "正在准备音频…", "audio.playFailed": "音频播放失败", "audio.loading": "正在加载音轨…",
         "audioPicker.eyebrow": "Icon Audio", "audioPicker.heading": "素材声音", "audioPicker.options": "素材音频备选",
@@ -47,7 +47,7 @@ const messages = {
         "library.heading": "素材库", "library.search": "搜索素材", "library.categories": "素材分类", "library.all": "全部", "library.pagination": "素材分页", "library.page": "第 {page} 页",
         "library.recommended": "推荐素材", "library.closeRecommended": "关闭 AI 推荐", "library.loading": "正在加载素材…",
         "library.empty": "暂无素材", "library.noMatch": "没有找到匹配的素材", "library.invalid": "素材数据格式不正确",
-        "library.failed": "素材加载失败", "library.drag": "拖动“{name}”到画布",
+        "library.failed": "素材加载失败", "library.drag": "拖动“{name}”到画布", "library.addRecommended": "点击将 AI 推荐的“{name}”加入画布",
         "category.animal": "动物", "category.nature": "自然", "category.character": "角色", "category.vehicle": "交通",
         "category.furniture": "家具", "category.building": "建筑", "category.emotion": "情绪", "category.action": "动作",
         "category.background": "背景", "category.sound": "声音",
@@ -73,6 +73,9 @@ const messages = {
 };
 
 Object.assign(messages.ja, {
+    "audio.duplicate":"複製","audio.deleteClip":"音声を削除","audio.addOption":"音声を追加：{name}",
+    "audio.iconBaseVolume":"基準音量","audio.iconBaseVolumeAdjust":"素材の基準音量を調整",
+    "library.addRecommended":"クリックしてAIおすすめの「{name}」をキャンバスに追加",
     "audioPicker.backgroundAndAudio":"{icon}・現在の背景音：{audio}",
     "audio.split":"再生ヘッド位置でナレーションを分割",
     "ai.acceptDesign":"デザインを採用","ai.rejectDesign":"元に戻す",
@@ -94,6 +97,9 @@ Object.assign(messages.ja, {
 });
 
 Object.assign(messages.en, {
+    "audio.duplicate":"Duplicate","audio.deleteClip":"Delete audio","audio.addOption":"Add sound: {name}",
+    "audio.iconBaseVolume":"Base Volume","audio.iconBaseVolumeAdjust":"Adjust asset base volume",
+    "library.addRecommended":"Click to add AI-recommended “{name}” to the canvas",
     "audioPicker.backgroundAndAudio":"{icon} · Current background audio: {audio}",
     "audio.split":"Split narration at playhead",
     "ai.acceptDesign":"Accept Design","ai.rejectDesign":"Reject Design",
