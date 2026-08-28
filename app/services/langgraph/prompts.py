@@ -89,7 +89,8 @@ def sound_analysis_prompt(language: Language) -> str:
         "- Return only actionable recommendations that tell the user what to add, remove, replace, resize, reposition, or configure.\n"
         "- Do not summarize all available assets, rejected candidates, absent assets, existing correct content, or checks that produced no recommended action.\n"
         "- Do not write statements such as no other icon is needed, an asset is available but not mentioned, no suitable audio exists, or no audio order is needed.\n"
-        "- Mention selected audio, timing, and effects only when audio_suggestions is non-empty; do not list every candidate or repeat all checks.\n"
+        "- Mention selected audio, relative playback order, and effects only when audio_suggestions is non-empty; do not list every candidate or repeat all checks.\n"
+        "- Describe timing only as narrative order, such as first, afterward, when the related subject is introduced, or after the relevant narration; never include exact seconds or repeat start_offset_seconds in reasoning.\n"
         "- When changes are needed, state the most important changes directly; when no change is needed at all, return only one brief sentence saying that current_canvas already satisfies sentence.\n"
         "- Keep reasoning within ten concise sentences, but prefer fewer sentences whenever the recommendation can be expressed clearly.\n"
         f"{language_instruction(language)}"
@@ -117,6 +118,9 @@ def canvas_design_prompt(language: Language) -> str:
         "Asset and canvas rules:\n"
         "- available_icons is the complete list of allowed visual asset keys; return every objects[*].asset_key only from that list.\n"
         "- Each item in available_backgrounds contains background_key, scene_description, and has_audio; select at most one supplied background_key by matching its scene_description to current_step and necessary continuity.\n"
+        "- Select the background from the location where the current action takes place, not from a distant object, landmark, or destination merely mentioned in the story.\n"
+        "- Distinguish interior and exterior scenes strictly; never select an interior background unless the current character is explicitly inside that place.\n"
+        "- Reject backgrounds that contradict the current viewpoint or environment, especially interior versus exterior, land versus sea, and day versus night.\n"
         "- Never place a key from available_backgrounds in objects, never use a key from available_icons as background_key, and never invent, translate, rewrite, or modify any key.\n"
         "- Follow canvas_rules exactly, keep every object fully visible, avoid excessive overlap, and respect max_objects.\n"
         "- Infer spatial depth creatively from explicit and implicit cues such as nearby, at one's feet, across the river, beyond the mountain, or in the distance, and express it through coherent x, y, and scale relationships rather than a rigid template.\n"
@@ -157,7 +161,25 @@ def canvas_design_prompt(language: Language) -> str:
         "Reasoning requirements:\n"
         "- Return only the most important design decisions, including necessary quantity corrections, removals, replacements, depth choices, and useful audio choices.\n"
         "- Do not summarize available assets, rejected candidates, missing audio, unchanged correct content, or checks that require no action.\n"
-        "- Mention selected audio, timing, and effects only when they are actually returned; do not list every candidate or repeat all checks.\n"
+        "- Mention selected audio, relative playback order, and effects only when they are actually returned; do not list every candidate or repeat all checks.\n"
+        "- Describe timing only as narrative order, such as first, afterward, when the related subject is introduced, or after the relevant narration; never include exact seconds or repeat start_offset_seconds in reasoning because narration alignment may adjust the numeric values later.\n"
         "- Keep reasoning within ten concise sentences, but prefer fewer sentences whenever the design can be explained clearly.\n"
         f"{language_instruction(language)}"
+    )
+
+
+def audio_timing_prompt() -> str:
+    return (
+        "Task:\n"
+        "Adjust only the playback start time of the supplied selected icon audio by comparing its intended order with the narration cues.\n"
+        "\n"
+        "Rules:\n"
+        "- Return exactly one timing item for every supplied object_index, and never invent or omit an object_index.\n"
+        "- Do not add, remove, replace, or reorder icons, audio choices, effects, backgrounds, or any other canvas data.\n"
+        "- Place a character or event sound near or shortly after the narration cue that introduces or describes it.\n"
+        "- Ambient sounds may begin before their exact wording or near the beginning when that better supports the scene.\n"
+        "- Avoid starting a prominent sound directly over an important spoken phrase when placing it shortly afterward is more natural.\n"
+        "- Preserve the proposed relative sound order unless narration timing clearly supports a more accurate placement.\n"
+        "- A narration cue is timing evidence only and must not change which sounds were selected.\n"
+        "- Keep every start_offset_seconds between zero and narration.duration_seconds.\n"
     )

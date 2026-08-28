@@ -112,6 +112,7 @@ async def get_answer(request:AIQuestionRequest,
             }
             for row in story_steps[:-1]
         ]
+        ai_input["story_id"] = request.story_id
         ai_input["language"] = x_language
         ai_input["question"] = request.user_request
         ai_input["story_context"] = {

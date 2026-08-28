@@ -1,6 +1,7 @@
 import json
 import asyncio
 import argparse
+import copy
 import logging
 import time
 # from IPython.display import Image, display
@@ -20,7 +21,13 @@ from app.services.langgraph.decorative_asset_rules import (
     PlacementRole,
     available_decorative_rules,
 )
-from app.services.langgraph.prompts import ROUTER_PROMPT, canvas_design_prompt, sound_analysis_prompt
+from app.services.langgraph.narration_timing import load_narration_timing
+from app.services.langgraph.prompts import (
+    ROUTER_PROMPT,
+    audio_timing_prompt,
+    canvas_design_prompt,
+    sound_analysis_prompt,
+)
 
 logger = logging.getLogger(__name__)
 # Schema for structured output to use as routing logic
@@ -199,18 +206,39 @@ class CanvasDesign(BaseModel):
     reasoning: str = Field(..., description="Return a concise explanation of the objects, background_key, spatial-depth design, and main visual choices in no more than ten sentences.", max_length=2000)
 
 
+class AudioTimingItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    object_index: int = Field(ge=0, le=11)
+    start_offset_seconds: float = Field(ge=0)
+
+
+class AudioTimingResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    timings: list[AudioTimingItem] = Field(
+        default_factory=list,
+        max_length=12,
+    )
+
+
 # Augment the LLM with schema for structured output
 router = llm.with_structured_output(Route)
 sound_analyzer = llm.with_structured_output(SoundAnalysis)
 canvas_designer = llm.with_structured_output(CanvasDesign)
+audio_timing_designer = llm.with_structured_output(AudioTimingResult)
 
 # State 后端代码组织的格式，不会因为llm幻觉而改变
 class AIInput(TypedDict):
+    story_id: NotRequired[int]
     language: Literal["ja", "zh", "en"]
     question: str
     story_context: "StoryContext"
     canvas: dict[str, object]
     audio: NotRequired[dict[str, object]]
+    # Only the standalone CLI uses this optional override. Normal API calls
+    # read precomputed timing data from app/seed_data/narration_timings.
+    narration_timing_override: NotRequired[dict[str, object]]
 
 
 class StoryStepContext(TypedDict):
@@ -630,6 +658,115 @@ async def llm_call_2(state: State):
     }
 
 
+async def audio_timing_node(state: State):
+    """Optionally align selected icon audio with precomputed narration cues."""
+    current_step = state["input"]["story_context"]["current_step"]
+    if current_step["step_type"] == "free_creation":
+        logger.info(
+            "Narration timing skipped: free-creation step | step_order=%s",
+            current_step["step_order"],
+        )
+        return {}
+
+    story_id = state["input"].get("story_id")
+    if story_id is None:
+        logger.info("Narration timing skipped: story_id unavailable")
+        return {}
+
+    language = state["input"].get("language", "zh")
+    narration = state["input"].get("narration_timing_override")
+    if narration is None:
+        narration = load_narration_timing(
+            story_id,
+            language,
+            current_step["step_order"],
+        )
+    if narration is None:
+        return {}
+
+    output = state.get("output")
+    objects = output.get("objects", []) if output else []
+    selected_audio = [
+        {
+            "object_index": object_index,
+            "asset_key": obj["asset_key"],
+            "selected_audio_key": obj["selected_audio_key"],
+            "proposed_start_seconds": obj.get("start_offset_seconds", 0),
+        }
+        for object_index, obj in enumerate(objects)
+        if obj.get("selected_audio_key") is not None
+    ]
+    if not selected_audio:
+        logger.info(
+            "Narration timing skipped: no selected icon audio | "
+            "story_id=%s | step_order=%s",
+            story_id,
+            current_step["step_order"],
+        )
+        return {}
+
+    timing_input = {
+        "selected_audio": selected_audio,
+        "narration": narration,
+    }
+    started_at = time.perf_counter()
+    try:
+        result = await audio_timing_designer.ainvoke(
+            [
+                SystemMessage(content=audio_timing_prompt()),
+                HumanMessage(
+                    content=json.dumps(timing_input, ensure_ascii=False)
+                ),
+            ]
+        )
+
+        expected_indices = {
+            item["object_index"]
+            for item in selected_audio
+        }
+        returned_indices = [
+            item.object_index
+            for item in result.timings
+        ]
+        if (
+            len(returned_indices) != len(expected_indices)
+            or set(returned_indices) != expected_indices
+            or len(set(returned_indices)) != len(returned_indices)
+            or any(
+                item.start_offset_seconds
+                > narration["duration_seconds"]
+                for item in result.timings
+            )
+        ):
+            raise ValueError("invalid narration timing result")
+
+        adjusted_output = copy.deepcopy(output)
+        for item in result.timings:
+            adjusted_output["objects"][item.object_index][
+                "start_offset_seconds"
+            ] = round(item.start_offset_seconds, 2)
+
+        logger.info(
+            "Narration timing aligned | story_id=%s | step_order=%s | "
+            "audio_objects=%d | cues=%d | elapsed_ms=%.1f",
+            story_id,
+            current_step["step_order"],
+            len(selected_audio),
+            len(narration["cues"]),
+            (time.perf_counter() - started_at) * 1000,
+        )
+        return {"output": adjusted_output}
+    except Exception:
+        logger.exception(
+            "Narration timing failed; keeping original AI timing | "
+            "story_id=%s | step_order=%s | elapsed_ms=%.1f",
+            story_id,
+            current_step["step_order"],
+            (time.perf_counter() - started_at) * 1000,
+        )
+        return {}
+
+
 async def llm_call_router(state: State):
     started_at = time.perf_counter()
     decision = await router.ainvoke(
@@ -669,6 +806,7 @@ router_builder = StateGraph(State)
 # Add nodes
 router_builder.add_node("llm_call_1", llm_call_1)
 router_builder.add_node("llm_call_2", llm_call_2)
+router_builder.add_node("audio_timing_node", audio_timing_node)
 router_builder.add_node("llm_call_router", llm_call_router)
 
 # Add edges to connect nodes
@@ -682,7 +820,8 @@ router_builder.add_conditional_edges(
     },
 )
 router_builder.add_edge("llm_call_1", END)
-router_builder.add_edge("llm_call_2", END)
+router_builder.add_edge("llm_call_2", "audio_timing_node")
+router_builder.add_edge("audio_timing_node", END)
 
 # Compile workflow
 router_workflow = router_builder.compile()
@@ -692,32 +831,60 @@ router_workflow = router_builder.compile()
 
 
 async def main(
+    story_id: int,
+    step_order: int,
+    step_type: Literal["story", "free_creation"],
     question: str,
     sentence: str,
     language: Literal["zh", "ja", "en"],
     canvas: dict[str, object],
     audio: dict[str, object],
+    narration_timing: dict[str, object] | None,
 ):
-    state = await router_workflow.ainvoke({
-        "input": {
-            "language": language,
-            "question": question,
-            "story_context": {
-                "previous_steps": [],
-                "current_step": {
-                    "step_order": 1,
-                    "step_type": "story",
-                    "sentence": sentence,
-                },
+    workflow_input: AIInput = {
+        "story_id": story_id,
+        "language": language,
+        "question": question,
+        "story_context": {
+            "previous_steps": [],
+            "current_step": {
+                "step_order": step_order,
+                "step_type": step_type,
+                "sentence": sentence,
             },
-            "canvas": canvas,
-            "audio": audio,
-        }
-    })
+        },
+        "canvas": canvas,
+        "audio": audio,
+    }
+    if narration_timing is not None:
+        workflow_input["narration_timing_override"] = narration_timing
 
-    # print(state)
-    print(state["decision"])
-    print(state["output"])
+    async for update in router_workflow.astream(
+        {"input": workflow_input},
+        stream_mode="updates",
+    ):
+        for node_name, node_update in update.items():
+            if node_name == "llm_call_router":
+                print("\n=== 1. Router decision ===")
+                print((node_update or {}).get("decision"))
+            elif node_name == "llm_call_2":
+                print("\n=== 2. llm_call_2 output (before narration timing) ===")
+                print(json.dumps(
+                    (node_update or {}).get("output", {}),
+                    ensure_ascii=False,
+                    indent=2,
+                ))
+            elif node_name == "audio_timing_node":
+                print("\n=== 3. audio_timing_node output ===")
+                if node_update and node_update.get("output"):
+                    print(json.dumps(
+                        node_update["output"],
+                        ensure_ascii=False,
+                        indent=2,
+                    ))
+                else:
+                    print("{}")
+                    print("Timing adjustment was skipped; llm_call_2 output was preserved.")
 
 
 if __name__ == "__main__":
@@ -730,7 +897,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--question",
-        default="还需要添加什么？",
+        default="请生成完整画布，并为小鸟选择合适的音频和播放时间。",
     )
     parser.add_argument(
         "--sentence",
@@ -742,6 +909,21 @@ if __name__ == "__main__":
         default="zh",
     )
     parser.add_argument(
+        "--story-id",
+        type=int,
+        default=1,
+    )
+    parser.add_argument(
+        "--step-order",
+        type=int,
+        default=1,
+    )
+    parser.add_argument(
+        "--step-type",
+        choices=("story", "free_creation"),
+        default="story",
+    )
+    parser.add_argument(
         "--canvas-json",
         default='{"objects": [], "background_key": null}',
     )
@@ -749,13 +931,30 @@ if __name__ == "__main__":
         "--audio-json",
         default='{"tracks": []}',
     )
+    parser.add_argument(
+        "--narration-json",
+        default=(
+            '{"duration_seconds": 12.0, "cues": ['
+            '{"text": "小鸟", "start_seconds": 2.0, "end_seconds": 3.0}, '
+            '{"text": "在树上歌唱", "start_seconds": 3.1, "end_seconds": 6.0}'
+            ']}'
+        ),
+        help=(
+            "CLI-only narration timing JSON. Pass 'null' to use the "
+            "precomputed story timing file instead."
+        ),
+    )
     arguments = parser.parse_args()
     asyncio.run(
         main(
+            story_id=arguments.story_id,
+            step_order=arguments.step_order,
+            step_type=arguments.step_type,
             question=arguments.question,
             sentence=arguments.sentence,
             language=arguments.language,
             canvas=json.loads(arguments.canvas_json),
             audio=json.loads(arguments.audio_json),
+            narration_timing=json.loads(arguments.narration_json),
         )
     )

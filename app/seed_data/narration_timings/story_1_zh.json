@@ -1,0 +1,83 @@
+{
+  "story_id": 1,
+  "language": "zh",
+  "steps": [
+    {
+      "step_order": 1,
+      "duration_seconds": 35.5,
+      "cues": [
+        {
+          "text": "傍晚的最后一抹霞光透过邮局的窗洒在桌面上",
+          "start_seconds": 0,
+          "end_seconds": 5.2
+        },
+        {
+          "text": "邮差正收拾着最后一捆信件",
+          "start_seconds": 5.2,
+          "end_seconds": 8.6
+        },
+        {
+          "text": "忽然发现桌子下摆放着一个包裹",
+          "start_seconds": 8.6,
+          "end_seconds": 13.1
+        },
+        {
+          "text": "他俯身捡起",
+          "start_seconds": 13.1,
+          "end_seconds": 14.8
+        },
+        {
+          "text": "怎么会放在这种地方",
+          "start_seconds": 14.8,
+          "end_seconds": 18.2
+        },
+        {
+          "text": "包裹上没有署名和地址",
+          "start_seconds": 18.2,
+          "end_seconds": 21.4
+        },
+        {
+          "text": "只找到一个已有些模糊的灯塔图案",
+          "start_seconds": 24.5,
+          "end_seconds": 29.8
+        }
+      ]
+    },
+    {
+      "step_order": 2,
+      "duration_seconds": 40.2,
+      "cues": [
+        {
+          "text": "邮差决定带走那个包裹",
+          "start_seconds": 0,
+          "end_seconds": 3.2
+        },
+        {
+          "text": "他来到海边的集市",
+          "start_seconds": 3.2,
+          "end_seconds": 6.1
+        },
+        {
+          "text": "几个行人正沿着海岸往家走",
+          "start_seconds": 8.5,
+          "end_seconds": 12.1
+        },
+        {
+          "text": "海岸边一座废弃多年的旧灯塔",
+          "start_seconds": 17.3,
+          "end_seconds": 22.4
+        },
+        {
+          "text": "钟声恰好从无尽的远方传来",
+          "start_seconds": 25.6,
+          "end_seconds": 30.2
+        },
+        {
+          "text": "奇怪，怎么会有钟声",
+          "start_seconds": 30.5,
+          "end_seconds": 33.8
+        }
+      ]
+    }
+  ]
+}

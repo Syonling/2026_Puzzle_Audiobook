@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="AI 辅助空间拼贴式有声绘本创作工作台" data-i18n-content="app.description">
     <title>有声绘本工作台</title>
-    <link rel="stylesheet" href="/static/css/app.css?v=20260826-5">
+    <link rel="stylesheet" href="/static/css/app.css?v=20260829-4">
 </head>
 <body data-i18n-title="app.title">
     <div class="app-shell">
@@ -104,14 +104,18 @@
 
                     <section class="assistant-workspace" aria-label="创作辅助工具" data-i18n-aria-label="assistantTools.label">
                         <div class="assistant-workspace-tabs" role="tablist" aria-label="选择辅助工具" data-i18n-aria-label="assistantTools.tabs">
-                            <button type="button" role="tab" aria-selected="true" data-assistant-tool="ai" data-i18n="assistantTools.ai">AI 助手</button>
-                            <button type="button" role="tab" aria-selected="false" data-assistant-tool="audio" data-i18n="assistantTools.audio">素材声音</button>
+                            <button type="button" role="tab" aria-selected="false" class="is-locked" data-assistant-tool="ai" data-i18n="assistantTools.ai">AI 助手</button>
+                            <button type="button" role="tab" aria-selected="true" class="is-active" data-assistant-tool="audio" data-i18n="assistantTools.audio">素材声音</button>
                         </div>
-                        <div class="assistant-tool-panel" role="tabpanel" data-assistant-panel="ai">
+                        <div class="assistant-tool-panel" role="tabpanel" data-assistant-panel="ai" hidden>
                             <section class="ai-question-panel" aria-labelledby="ai-question-title">
                                 <div class="panel-heading ai-question-heading">
                                     <p class="eyebrow">AI</p>
                                     <h2 id="ai-question-title" data-i18n="ai.heading">AI 创作助手</h2>
+                                    <button class="ai-manual-lock" type="button" data-ai-manual-lock title="锁定 AI 助手" aria-label="锁定 AI 助手" data-i18n-title="aiLock.lock" data-i18n-aria-label="aiLock.lock">
+                                        <span aria-hidden="true">🔒</span>
+                                        <span data-i18n="aiLock.lock">上锁</span>
+                                    </button>
                                 </div>
                                 <form class="ai-question-form" data-ai-question-form>
                                     <label class="ai-question-field">
@@ -135,7 +139,7 @@
                                 <p class="ai-question-error" role="alert" data-ai-question-error hidden></p>
                             </section>
                         </div>
-                        <div class="assistant-tool-panel" role="tabpanel" data-assistant-panel="audio" hidden>
+                        <div class="assistant-tool-panel" role="tabpanel" data-assistant-panel="audio">
                             <p class="object-audio-empty" data-object-audio-empty data-i18n="audioPicker.empty">选择有声音的画布素材后，可在这里更换声音。</p>
                             <section class="object-audio-picker" data-object-audio-picker hidden>
                                 <div class="object-audio-picker-heading">
@@ -385,6 +389,21 @@
         </form>
     </dialog>
 
+    <dialog class="ai-lock-dialog" data-ai-lock-dialog aria-labelledby="ai-lock-title">
+        <button class="dialog-close" type="button" data-ai-lock-close aria-label="关闭密码窗口" data-i18n-aria-label="aiLock.close">×</button>
+        <div class="ai-lock-icon" aria-hidden="true">🔒</div>
+        <h2 id="ai-lock-title" data-i18n="aiLock.title">解锁 AI 助手</h2>
+        <p data-i18n="aiLock.description">请输入密码后使用 AI 助手。</p>
+        <form class="ai-lock-form" data-ai-lock-form>
+            <label>
+                <span data-i18n="auth.password">密码</span>
+                <input type="password" inputmode="numeric" autocomplete="off" data-ai-lock-password required>
+            </label>
+            <p class="form-error" role="alert" data-ai-lock-error hidden></p>
+            <button type="submit" data-i18n="aiLock.unlock">解锁</button>
+        </form>
+    </dialog>
+
     <dialog class="bookshelf-dialog" data-bookshelf-dialog aria-labelledby="bookshelf-title">
         <div class="bookshelf-heading">
             <div>
@@ -408,14 +427,14 @@
         </div>
     </dialog>
 
-    <script type="module" src="/static/js/i18n.js?v=20260826-7"></script>
-    <script type="module" src="/static/js/stories.js?v=20260826-7"></script>
-    <script type="module" src="/static/js/projects.js?v=20260826-7"></script>
-    <script type="module" src="/static/js/auth.js?v=20260826-7"></script>
-    <script type="module" src="/static/js/ai_questions.js?v=20260826-7"></script>
-    <script type="module" src="/static/js/assets.js?v=20260826-7"></script>
-    <script type="module" src="/static/js/audio.js?v=20260826-7"></script>
-    <script type="module" src="/static/js/timer.js?v=20260826-7"></script>
-    <script type="module" src="/static/js/logger.js?v=20260826-7"></script>
+    <script type="module" src="/static/js/i18n.js?v=20260829-4"></script>
+    <script type="module" src="/static/js/stories.js?v=20260829-4"></script>
+    <script type="module" src="/static/js/projects.js?v=20260829-4"></script>
+    <script type="module" src="/static/js/auth.js?v=20260829-4"></script>
+    <script type="module" src="/static/js/ai_questions.js?v=20260829-4"></script>
+    <script type="module" src="/static/js/assets.js?v=20260829-4"></script>
+    <script type="module" src="/static/js/audio.js?v=20260829-4"></script>
+    <script type="module" src="/static/js/timer.js?v=20260829-4"></script>
+    <script type="module" src="/static/js/logger.js?v=20260829-4"></script>
 </body>
 </html>

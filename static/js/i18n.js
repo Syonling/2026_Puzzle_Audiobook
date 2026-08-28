@@ -18,7 +18,7 @@ const messages = {
         "story.choose": "选择故事：{title}", "story.open": "打开这本故事", "story.cover": "{title}封面",
         "story.switchSteps": "切换故事步骤", "bookshelf.title": "选择一个故事", "bookshelf.close": "关闭书架",
         "ai.heading": "AI 创作助手", "ai.placeholder": "问问 AI，这一页可以怎么画？", "ai.submit": "提交", "ai.thinking": "思考中…",
-        "assistantTools.label": "创作辅助工具", "assistantTools.tabs": "选择辅助工具", "assistantTools.ai": "AI 助手", "assistantTools.audio": "素材声音",
+        "assistantTools.label": "创作辅助工具", "assistantTools.tabs": "选择辅助工具", "assistantTools.ai": "AI 助手", "assistantTools.audio": "素材声音", "aiLock.title": "解锁 AI 助手", "aiLock.description": "请输入密码后使用 AI 助手。", "aiLock.unlock": "解锁", "aiLock.lock": "上锁", "aiLock.close": "关闭密码窗口", "aiLock.wrongPassword": "密码错误",
         "ai.presets": "预设 AI 问题", "ai.presetsLoading": "正在加载推荐问题…", "ai.presetsEmpty": "暂无推荐问题",
         "ai.presetsInvalid": "推荐问题格式不正确", "ai.presetsFailed": "推荐问题加载失败", "ai.inputRequired": "请输入想问 AI 的内容",
         "ai.stepRequired": "请先选择一个已经加载完成的故事步骤", "ai.suggestionInvalid": "AI 推荐结果格式不正确",
@@ -73,6 +73,7 @@ const messages = {
 };
 
 Object.assign(messages.ja, {
+    "aiLock.title":"AIアシスタントのロック解除","aiLock.description":"パスワードを入力するとAIアシスタントを利用できます。","aiLock.unlock":"ロック解除","aiLock.lock":"ロック","aiLock.close":"パスワード画面を閉じる","aiLock.wrongPassword":"パスワードが違います",
     "timer.open":"カウントダウンを設定","timer.heading":"カウントダウン","timer.minutes":"分","timer.seconds":"秒","timer.start":"開始","timer.continue":"再開","timer.pause":"一時停止","timer.reset":"リセット","timer.finished":"時間です",
     "audio.duplicate":"複製","audio.deleteClip":"音声を削除","audio.addOption":"音声を追加：{name}",
     "audio.iconBaseVolume":"基準音量","audio.iconBaseVolumeAdjust":"素材の基準音量を調整",
@@ -98,6 +99,7 @@ Object.assign(messages.ja, {
 });
 
 Object.assign(messages.en, {
+    "aiLock.title":"Unlock AI Assistant","aiLock.description":"Enter the password to use the AI Assistant.","aiLock.unlock":"Unlock","aiLock.lock":"Lock","aiLock.close":"Close password dialog","aiLock.wrongPassword":"Incorrect password",
     "timer.open":"Set countdown","timer.heading":"Countdown","timer.minutes":"Minutes","timer.seconds":"Seconds","timer.start":"Start","timer.continue":"Continue","timer.pause":"Pause","timer.reset":"Reset","timer.finished":"Time is up",
     "audio.duplicate":"Duplicate","audio.deleteClip":"Delete audio","audio.addOption":"Add sound: {name}",
     "audio.iconBaseVolume":"Base Volume","audio.iconBaseVolumeAdjust":"Adjust asset base volume",

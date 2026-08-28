@@ -925,8 +925,10 @@ p {
 
 .story-step-card {
     display: flex;
-    min-height: 130px;
-    max-height: none;
+    box-sizing: border-box;
+    height: 280px;
+    min-height: 280px;
+    max-height: 280px;
     flex: none;
     flex-direction: column;
     padding: 18px;
@@ -977,6 +979,71 @@ p {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+.assistant-workspace-tabs button.is-locked::after {
+    margin-left: 5px;
+    content: "\1f512";
+    font-size: 9px;
+}
+
+.ai-lock-dialog {
+    width: min(calc(100% - 32px), 360px);
+    padding: 28px;
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+.ai-lock-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(5px);
+}
+
+.ai-lock-icon {
+    margin-bottom: 10px;
+    font-size: 28px;
+}
+
+.ai-lock-dialog > p {
+    margin-top: 8px;
+    color: var(--secondary);
+    font-size: 13px;
+}
+
+.ai-lock-form {
+    display: grid;
+    gap: 12px;
+    margin-top: 20px;
+    text-align: left;
+}
+
+.ai-lock-form label {
+    display: grid;
+    gap: 7px;
+    color: var(--secondary);
+    font-size: 12px;
+}
+
+.ai-lock-form input {
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    font: inherit;
+}
+
+.ai-lock-form > button {
+    height: 42px;
+    border: 0;
+    border-radius: 11px;
+    background: var(--accent);
+    color: white;
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+}
+
 .assistant-tool-panel {
     min-height: 0;
     flex: 1;
@@ -1006,11 +1073,23 @@ p {
 }
 
 .story-step-text {
-    flex: none;
+    min-height: 0;
+    margin-bottom: 4px;
     margin-top: 13px;
-    overflow: visible;
+    padding-right: 6px;
+    flex: 1 1 auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     font-size: 15px;
     line-height: 1.8;
+    overflow-wrap: anywhere;
+    scrollbar-width: thin;
+    white-space: pre-wrap;
+}
+
+.story-step-label,
+.story-step-buttons {
+    flex: 0 0 auto;
 }
 
 .story-step-buttons {
@@ -1275,7 +1354,33 @@ p {
 }
 
 .ai-question-heading {
+    position: relative;
+    padding-right: 70px;
     margin-bottom: 14px;
+}
+
+.ai-manual-lock {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: inline-flex;
+    height: 28px;
+    padding: 0 9px;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.09);
+    border-radius: 999px;
+    background: rgba(118, 118, 128, 0.08);
+    color: var(--secondary);
+    font: inherit;
+    font-size: 10px;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.ai-manual-lock:hover {
+    background: rgba(118, 118, 128, 0.14);
+    color: var(--text);
 }
 
 .story-panel .ai-question-form {
@@ -1506,8 +1611,8 @@ p {
 .object-audio-option-add {
     position: absolute;
     z-index: 3;
+    top: 5px;
     right: 5px;
-    bottom: 5px;
     display: grid;
     width: 22px;
     height: 22px;
@@ -1553,7 +1658,7 @@ p {
 .object-audio-option.is-ai-recommended::after {
     position: absolute;
     top: 5px;
-    right: 6px;
+    right: 31px;
     padding: 2px 4px;
     border-radius: 999px;
     background: var(--accent);

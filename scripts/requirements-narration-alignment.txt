@@ -1,0 +1,2 @@
+# Install this in a separate/offline alignment environment when possible.
+whisperx

@@ -1,23 +1,23 @@
-import { request } from "./api.js?v=20260826-7";
-import { getLanguage, t } from "./i18n.js?v=20260826-7";
+import { request } from "./api.js?v=20260829-4";
+import { getLanguage, t } from "./i18n.js?v=20260829-4";
 import {
     getActiveCanvasContext,
     getActiveCanvasSnapshot,
     replaceActiveCanvasFromAI,
     restoreActiveCanvasSnapshot,
     setCanvasAIPreviewLocked,
-} from "./canvas.js?v=20260826-7";
+} from "./canvas.js?v=20260829-4";
 import {
     getActiveAudioSnapshot,
     restoreActiveAudioSnapshot,
     setAudioAIPreviewLocked,
-} from "./audio.js?v=20260826-7";
+} from "./audio.js?v=20260829-4";
 import {
     acceptAIPreview,
     beginAIPreview,
     rejectAIPreview,
-} from "./projects.js?v=20260826-7";
-import { getEventSessionId } from "./logger.js?v=20260826-7";
+} from "./projects.js?v=20260829-4";
+import { getEventSessionId } from "./logger.js?v=20260829-4";
 
 const form = document.querySelector("[data-ai-question-form]");
 const input = document.querySelector("[data-ai-question-input]");
@@ -452,6 +452,13 @@ window.addEventListener("puzzle-audiobook:step-change", () => {
 });
 window.addEventListener("puzzle-audiobook:new-story", () => {
     cancelPendingAnswer();
+    hideAnswer();
+});
+window.addEventListener("puzzle-audiobook:ai-manual-lock", () => {
+    rejectCurrentAIPreview();
+    cancelPendingAnswer();
+    showError();
+    publishSuggestedAssets();
     hideAnswer();
 });
 

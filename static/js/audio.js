@@ -1,4 +1,4 @@
-import { t } from "./i18n.js?v=20260826-7";
+import { t } from "./i18n.js?v=20260829-4";
 
 const DEFAULT_DURATION = 15;
 // 保留既有 ID 以兼容已保存项目；数组顺序就是界面与后端序列化顺序。
@@ -43,6 +43,12 @@ const objectAudioError = document.querySelector("[data-object-audio-error]");
 const objectAudioEmpty = document.querySelector("[data-object-audio-empty]");
 const assistantToolButtons = [...document.querySelectorAll("[data-assistant-tool]")];
 const assistantToolPanels = [...document.querySelectorAll("[data-assistant-panel]")];
+const aiLockDialog = document.querySelector("[data-ai-lock-dialog]");
+const aiLockForm = document.querySelector("[data-ai-lock-form]");
+const aiLockPassword = document.querySelector("[data-ai-lock-password]");
+const aiLockError = document.querySelector("[data-ai-lock-error]");
+const AI_UNLOCK_KEY = "puzzleAudiobook.aiUnlocked";
+const AI_PASSWORD = "0920";
 
 const audioCache = new Map();
 const bufferCache = new Map();
@@ -292,7 +298,10 @@ function syncNarrationToStep(audio, context) {
 }
 
 function setAssistantTool(tool) {
-    const nextTool = tool === "audio" ? "audio" : "ai";
+    const wantsAI = tool !== "audio";
+    const nextTool = wantsAI && sessionStorage.getItem(AI_UNLOCK_KEY) === "true"
+        ? "ai"
+        : "audio";
     assistantToolButtons.forEach((button) => {
         const isActive = button.dataset.assistantTool === nextTool;
         button.classList.toggle("is-active", isActive);
@@ -302,6 +311,25 @@ function setAssistantTool(tool) {
     assistantToolPanels.forEach((panel) => {
         panel.hidden = panel.dataset.assistantPanel !== nextTool;
     });
+}
+
+function updateAILockState() {
+    const unlocked = sessionStorage.getItem(AI_UNLOCK_KEY) === "true";
+    const button = assistantToolButtons.find(
+        (candidate) => candidate.dataset.assistantTool === "ai",
+    );
+    button?.classList.toggle("is-locked", !unlocked);
+}
+
+function openAILockDialog() {
+    if (!aiLockDialog) return;
+    if (aiLockError) {
+        aiLockError.textContent = "";
+        aiLockError.hidden = true;
+    }
+    if (aiLockPassword) aiLockPassword.value = "";
+    aiLockDialog.showModal();
+    queueMicrotask(() => aiLockPassword?.focus());
 }
 
 function getTrackDisplayName(trackId) {
@@ -380,7 +408,13 @@ function getAudioOptionsForObject(object) {
     const options = Array.isArray(asset?.audio_options)
         ? asset.audio_options.filter(
             (option) => option?.audio_key && option?.audio_url,
-        ).sort((left, right) => Number(left.sort_order) - Number(right.sort_order))
+        ).map((option) => ({
+            ...option,
+            name: option.is_default === true
+                || option.audio_key === asset?.default_audio_key
+                ? (asset?.name || object.label || object.asset_key)
+                : (option.name || option.audio_key),
+        })).sort((left, right) => Number(left.sort_order) - Number(right.sort_order))
         : [];
     if (options.length > 0) return options;
     const fallbackUrl = asset?.audio_url || object.audio_url;
@@ -1254,8 +1288,40 @@ function stopPlayback() {
 function getWebAudioContext() {
     const Context = globalThis.AudioContext || globalThis.webkitAudioContext;
     if (!Context) throw new Error(t("audio.unsupported"));
-    if (!audioContext) audioContext = new Context();
+    if (!audioContext || audioContext.state === "closed") {
+        const context = new Context();
+        audioContext = context;
+        reverbImpulseCache.clear();
+        activeSources = [];
+        activeClipNodes.clear();
+        playbackMasterGain = null;
+        context.addEventListener?.("statechange", () => {
+            if (audioContext !== context || context.state !== "closed") return;
+            haltPlayback();
+            audioContext = null;
+            renderAudio();
+        });
+    }
     return audioContext;
+}
+
+async function resumeWebAudioContext() {
+    let context = getWebAudioContext();
+    if (context.state === "running") return context;
+    try {
+        await context.resume();
+    } catch (error) {
+        if (context.state !== "closed") throw error;
+        audioContext = null;
+        context = getWebAudioContext();
+        await context.resume();
+    }
+    if (context.state === "closed") {
+        audioContext = null;
+        context = getWebAudioContext();
+        await context.resume();
+    }
+    return context;
 }
 
 function loadAudioBuffer(url) {
@@ -1265,7 +1331,11 @@ function loadAudioBuffer(url) {
                 if (!response.ok) throw new Error(t("audio.fileFailed"));
                 return response.arrayBuffer();
             })
-            .then((buffer) => getWebAudioContext().decodeAudioData(buffer));
+            .then((buffer) => getWebAudioContext().decodeAudioData(buffer))
+            .catch((error) => {
+                if (bufferCache.get(url) === promise) bufferCache.delete(url);
+                throw error;
+            });
         bufferCache.set(url, promise);
     }
     return bufferCache.get(url);
@@ -1399,8 +1469,7 @@ async function playTimeline() {
     updateTransport();
 
     try {
-        const context = getWebAudioContext();
-        await context.resume();
+        const context = await resumeWebAudioContext();
         const buffers = await Promise.all(clipEntries.map(
             ({ clip }) => loadAudioBuffer(clip.audio_url),
         ));
@@ -2060,7 +2129,44 @@ pauseButton?.addEventListener("click", pausePlayback);
 stopButton?.addEventListener("click", stopPlayback);
 splitButton?.addEventListener("click", splitSelectedNarration);
 assistantToolButtons.forEach((button) => {
-    button.addEventListener("click", () => setAssistantTool(button.dataset.assistantTool));
+    button.addEventListener("click", () => {
+        if (
+            button.dataset.assistantTool === "ai"
+            && sessionStorage.getItem(AI_UNLOCK_KEY) !== "true"
+        ) {
+            openAILockDialog();
+            return;
+        }
+        setAssistantTool(button.dataset.assistantTool);
+    });
+});
+aiLockForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (aiLockPassword?.value !== AI_PASSWORD) {
+        if (aiLockError) {
+            aiLockError.textContent = t("aiLock.wrongPassword");
+            aiLockError.hidden = false;
+        }
+        aiLockPassword?.focus();
+        aiLockPassword?.select();
+        return;
+    }
+    sessionStorage.setItem(AI_UNLOCK_KEY, "true");
+    updateAILockState();
+    aiLockDialog?.close();
+    setAssistantTool("ai");
+});
+document.querySelector("[data-ai-lock-close]")?.addEventListener("click", () => {
+    aiLockDialog?.close();
+});
+document.querySelector("[data-ai-manual-lock]")?.addEventListener("click", () => {
+    sessionStorage.removeItem(AI_UNLOCK_KEY);
+    updateAILockState();
+    setAssistantTool("audio");
+    window.dispatchEvent(new CustomEvent("puzzle-audiobook:ai-manual-lock"));
+});
+aiLockDialog?.addEventListener("click", (event) => {
+    if (event.target === aiLockDialog) aiLockDialog.close();
 });
 trackMuteButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -2356,6 +2462,19 @@ window.addEventListener("puzzle-audiobook:language-change", () => {
     renderAudio();
     renderObjectAudioPicker();
 });
+document.addEventListener("visibilitychange", () => {
+    if (
+        document.visibilityState === "visible"
+        && isPlaying
+        && audioContext
+        && audioContext.state !== "running"
+        && audioContext.state !== "closed"
+    ) {
+        audioContext.resume().catch(() => {
+            // 若浏览器仍要求用户手势，将由下一次播放操作再次恢复。
+        });
+    }
+});
 window.addEventListener("puzzle-audiobook:localized-assets", (event) => {
     const assets = Array.isArray(event.detail?.assets) ? event.detail.assets : [];
     localizedAssetsByKey.clear();
@@ -2364,5 +2483,6 @@ window.addEventListener("puzzle-audiobook:localized-assets", (event) => {
     renderObjectAudioPicker();
 });
 
-setAssistantTool("ai");
+updateAILockState();
+setAssistantTool("audio");
 renderAudio();

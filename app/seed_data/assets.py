@@ -5307,6 +5307,64 @@ SHARED_AUDIO_OPTIONS: list[dict] = [
 ]
 
 
+# 备选/共享音频名称按 audio_key（共享音频按 audio_key_suffix）集中维护。
+# 默认音频不需要逐条填写，下面会使用素材现有的中、日、英文名称自动生成。
+AUDIO_OPTION_NAMES: dict[str, dict[str, str]] = {
+    "cat_purr": {"zh": "猫咪呼噜声", "ja": "猫の喉鳴らし", "en": "Cat purr"},
+    "bicycle_chain": {"zh": "自行车链条声", "ja": "自転車のチェーン音", "en": "Bicycle chain"},
+    "door_knocking": {"zh": "敲门声", "ja": "ドアをノックする音", "en": "Door knocking"},
+    "light_rain": {"zh": "小雨声", "ja": "小雨の音", "en": "Light rain"},
+    "moderate_rain": {"zh": "中雨声", "ja": "普通の雨音", "en": "Moderate rain"},
+    "heavy_rain": {"zh": "大雨声", "ja": "激しい雨音", "en": "Heavy rain"},
+    "horse_panting": {"zh": "马喘息声", "ja": "馬の息遣い", "en": "Horse panting"},
+    "horse_walking": {"zh": "马行走声", "ja": "馬の足音", "en": "Horse walking"},
+    "light_wind": {"zh": "微风声", "ja": "そよ風の音", "en": "Light wind"},
+    "moderate_wind": {"zh": "中等风声", "ja": "やや強い風の音", "en": "Moderate wind"},
+    "wind_through_cracks": {"zh": "穿过缝隙的风声", "ja": "隙間を吹き抜ける風の音", "en": "Wind through cracks"},
+    "rhythmic_water_dripping": {"zh": "有节奏的滴水声", "ja": "規則的な水滴の音", "en": "Rhythmic water dripping"},
+    "single_water_drop": {"zh": "单滴水声", "ja": "一滴の水音", "en": "Single water drop"},
+    "two_water_drops": {"zh": "两滴水声", "ja": "二滴の水音", "en": "Two water drops"},
+    "normal_walking": {"zh": "普通脚步声", "ja": "普通の足音", "en": "Normal footsteps"},
+    "brisk_walking": {"zh": "轻快脚步声", "ja": "速足の音", "en": "Brisk footsteps"},
+    "clothing_rustling": {"zh": "衣物摩擦声", "ja": "衣擦れの音", "en": "Clothing rustling"},
+    "country_road_walking_medium_speed": {"zh": "乡间道路中速脚步声", "ja": "田舎道を歩く足音", "en": "Medium-paced footsteps on a country road"},
+    "creaking": {"zh": "吱呀声", "ja": "きしむ音", "en": "Creaking"},
+    "hurried_footsteps": {"zh": "急促脚步声", "ja": "急ぐ足音", "en": "Hurried footsteps"},
+    "packing_up": {"zh": "收拾物品声", "ja": "片付ける音", "en": "Packing up"},
+    "walking_on_snow": {"zh": "雪地脚步声", "ja": "雪の上を歩く足音", "en": "Footsteps on snow"},
+    "walking_on_wooden_floor": {"zh": "木地板脚步声", "ja": "木の床を歩く足音", "en": "Footsteps on a wooden floor"},
+    "orchard": {"zh": "果园环境声", "ja": "果樹園の環境音", "en": "Orchard ambience"},
+}
+
+
+def _names_to_contents(names: dict[str, str]) -> list[dict[str, str]]:
+    return [
+        {"language": language, "name": names[language]}
+        for language in ("zh", "ja", "en")
+    ]
+
+
+def _default_audio_contents(asset: dict) -> list[dict[str, str]]:
+    """使用素材名称生成默认音频名称，背景素材使用“环境声”表达。"""
+    asset_names = {
+        content["language"]: content["name"]
+        for content in asset["contents"]
+    }
+    if asset["category"] == "background":
+        names = {
+            "zh": f"{asset_names['zh']}环境声",
+            "ja": f"{asset_names['ja']}の環境音",
+            "en": f"{asset_names['en']} ambience",
+        }
+    else:
+        names = {
+            "zh": f"{asset_names['zh']}的声音",
+            "ja": f"{asset_names['ja']}の音",
+            "en": f"{asset_names['en']} sound",
+        }
+    return _names_to_contents(names)
+
+
 def _validate_audio_option_targets() -> None:
     asset_categories = {
         asset["asset_key"]: asset["category"]
@@ -5341,10 +5399,14 @@ def _validate_audio_option_targets() -> None:
         )
 
 def _get_configured_audio_options(asset_key: str) -> list[dict]:
-    options = [
-        dict(option)
-        for option in ADDITIONAL_AUDIO_OPTIONS.get(asset_key, [])
-    ]
+    options = []
+    for configured_option in ADDITIONAL_AUDIO_OPTIONS.get(asset_key, []):
+        option = dict(configured_option)
+        option.setdefault(
+            "contents",
+            _names_to_contents(AUDIO_OPTION_NAMES[option["audio_key"]]),
+        )
+        options.append(option)
 
     for shared in SHARED_AUDIO_OPTIONS:
         if asset_key not in shared["asset_keys"]:
@@ -5356,7 +5418,12 @@ def _get_configured_audio_options(asset_key: str) -> list[dict]:
                 ),
                 "audio_url": shared["audio_url"],
                 "sort_order": shared.get("sort_order"),
-                "contents": shared.get("contents", []),
+                "contents": shared.get(
+                    "contents",
+                    _names_to_contents(
+                        AUDIO_OPTION_NAMES[shared["audio_key_suffix"]]
+                    ),
+                ),
             }
         )
 
@@ -5378,7 +5445,7 @@ def _attach_audio_options() -> None:
                     "audio_url": default_audio_url,
                     "is_default": True,
                     "sort_order": 0,
-                    "contents": [],
+                    "contents": _default_audio_contents(asset),
                 }
             )
 

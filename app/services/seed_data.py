@@ -86,7 +86,7 @@ def _get_asset_audio_options(asset: dict) -> list[dict]:
 
 
 def _validate_asset_audio_options() -> None:
-    """在写入数据库前检查普通 icon 的音频种子数据。"""
+    """在写入数据库前检查 icon 和 background 的音频种子数据。"""
     used_audio_keys = set()
 
     for asset in ASSETS:
@@ -134,6 +134,20 @@ def _validate_asset_audio_options() -> None:
                     f"Asset {asset['asset_key']} has duplicate audio sort_order"
                 )
             sort_orders.add(sort_order)
+
+            contents = option.get("contents", [])
+            names_by_language = {
+                content.get("language"): content.get("name")
+                for content in contents
+            }
+            if set(names_by_language) != {"zh", "ja", "en"}:
+                raise ValueError(
+                    f"Audio option {audio_key} must have exactly zh, ja, en names"
+                )
+            if any(not name or not name.strip() for name in names_by_language.values()):
+                raise ValueError(
+                    f"Audio option {audio_key} has an empty translated name"
+                )
 
 
 def seed_database(connect) -> None:
@@ -303,7 +317,6 @@ def seed_database(connect) -> None:
                 (option["audio_key"],),
             ).fetchone()
 
-            # 当前 contents 为空；保留写入逻辑供未来增加音频名称翻译。
             for content in option.get("contents", []):
                 connect.execute(
                     """
