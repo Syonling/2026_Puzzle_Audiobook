@@ -85,8 +85,8 @@ class AudioSuggestion(BaseModel):
     start_offset_seconds: float = Field(default=0, ge=0, le=60)
     effect_keys: list[AudioEffectKey] = Field(
         default_factory=list,
-        max_length=2,
-        description="Return at most two exact keys from available_audio_effects.",
+        max_length=3,
+        description="Return at most three exact keys from available_audio_effects.",
     )
 
 
@@ -134,9 +134,9 @@ class CanvasObjectDesign(BaseModel):
     )
     effect_keys: list[AudioEffectKey] = Field(
         default_factory=list,
-        max_length=2,
+        max_length=3,
         description=(
-            "Return at most two exact effect keys, and return an empty list "
+            "Return at most three exact effect keys, and return an empty list "
             "when selected_audio_key is null."
         ),
     )
@@ -194,7 +194,7 @@ class CanvasDesign(BaseModel):
     )
     background_effect_keys: list[AudioEffectKey] = Field(
         default_factory=list,
-        max_length=2,
+        max_length=3,
     )
     reasoning: str = Field(..., description="Return a concise explanation of the objects, background_key, spatial-depth design, and main visual choices in no more than ten sentences.", max_length=2000)
 
