@@ -558,6 +558,29 @@ ASSETS = [
         ]
     },
     {
+        "asset_key": "fox_walking",
+        "category": "animals",
+        "image_url": "/static/images/fox_walking.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "歩くキツネ",
+                "category_translation": "動物"
+            },
+            {
+                "language": "zh",
+                "name": "行走的狐狸",
+                "category_translation": "动物"
+            },
+            {
+                "language": "en",
+                "name": "Fox Walking",
+                "category_translation": "animals"
+            }
+        ]
+    },
+    {
         "asset_key": "horses_running",
         "category": "animals",
         "image_url": "/static/images/horses_running.png",
@@ -1984,6 +2007,52 @@ ASSETS = [
         ]
     },
     {
+        "asset_key": "scattered_pedestrians",
+        "category": "characters",
+        "image_url": "/static/images/scattered_pedestrians.png",
+        "audio_url": "/static/audio/outdoor_enthusiasts.wav",
+        "contents": [
+            {
+                "language": "ja",
+                "name": "散らばる通行人",
+                "category_translation": "人物"
+            },
+            {
+                "language": "zh",
+                "name": "零散的行人",
+                "category_translation": "人物"
+            },
+            {
+                "language": "en",
+                "name": "Scattered Pedestrians",
+                "category_translation": "characters"
+            }
+        ]
+    },
+    {
+        "asset_key": "postman_walking",
+        "category": "characters",
+        "image_url": "/static/images/postman_walking.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "歩く郵便配達人",
+                "category_translation": "人物"
+            },
+            {
+                "language": "zh",
+                "name": "行走的邮差",
+                "category_translation": "人物"
+            },
+            {
+                "language": "en",
+                "name": "Postman Walking",
+                "category_translation": "characters"
+            }
+        ]
+    },
+    {
         "asset_key": "rain",
         "category": "weather",
         "image_url": "/static/images/rain.png",
@@ -3064,6 +3133,75 @@ ASSETS = [
             }
         ]
     },
+   {
+        "asset_key": "bush",
+        "category": "plants",
+        "image_url": "/static/images/bush.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "茂み",
+                "category_translation": "植物"
+            },
+            {
+                "language": "zh",
+                "name": "灌木丛",
+                "category_translation": "植物"
+            },
+            {
+                "language": "en",
+                "name": "Bush",
+                "category_translation": "plants"
+            }
+        ]
+    },
+    {
+        "asset_key": "dew_grass",
+        "category": "plants",
+        "image_url": "/static/images/dew_grass.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "露のついた草",
+                "category_translation": "植物"
+            },
+            {
+                "language": "zh",
+                "name": "带水珠的草",
+                "category_translation": "植物"
+            },
+            {
+                "language": "en",
+                "name": "Dew Grass",
+                "category_translation": "plants"
+            }
+        ]
+    },
+    {
+        "asset_key": "red_berries",
+        "category": "plants",
+        "image_url": "/static/images/red_berries.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "赤い実",
+                "category_translation": "植物"
+            },
+            {
+                "language": "zh",
+                "name": "红色的果子",
+                "category_translation": "植物"
+            },
+            {
+                "language": "en",
+                "name": "Red Berries",
+                "category_translation": "plants"
+            }
+        ]
+    },    
     {
         "asset_key": "train",
         "category": "vehicles",
@@ -3433,6 +3571,29 @@ ASSETS = [
         ]
     },
     {
+        "asset_key": "canoe",
+        "category": "vehicles",
+        "image_url": "/static/images/canoe.png",
+        "audio_url": "/static/audio/solo_rowing.wav",
+        "contents": [
+            {
+                "language": "ja",
+                "name": "カヌー",
+                "category_translation": "乗り物"
+            },
+            {
+                "language": "zh",
+                "name": "独木舟",
+                "category_translation": "交通工具"
+            },
+            {
+                "language": "en",
+                "name": "Canoe",
+                "category_translation": "vehicles"
+            }
+        ]
+    },    
+    {
         "asset_key": "drum",
         "category": "instruments",
         "image_url": "/static/images/drum.png",
@@ -3635,6 +3796,29 @@ ASSETS = [
             {
                 "language": "en",
                 "name": "Church Bell",
+                "category_translation": "daily_life"
+            }
+        ]
+    },
+    {
+        "asset_key": "traveler_bundle",
+        "category": "daily_life",
+        "image_url": "/static/images/traveler_bundle.png",
+        "audio_url": None,
+        "contents": [
+            {
+                "language": "ja",
+                "name": "旅人の包み",
+                "category_translation": "生活"
+            },
+            {
+                "language": "zh",
+                "name": "包袱",
+                "category_translation": "生活"
+            },
+            {
+                "language": "en",
+                "name": "Traveler Bundle",
                 "category_translation": "daily_life"
             }
         ]
@@ -4583,6 +4767,29 @@ ASSETS = [
         ]
     },
     {
+        "asset_key": "mountain_plateau_background",
+        "category": "background",
+        "image_url": "/static/images/mountain_plateau_background.png",
+        "audio_url": "/static/audio/grassland_background.wav",
+        "contents": [
+            {
+                "language": "ja",
+                "name": "山頂の平原の背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "zh",
+                "name": "山顶平原背景",
+                "category_translation": "背景"
+            },
+            {
+                "language": "en",
+                "name": "Mountain Plateau Background",
+                "category_translation": "background"
+            }
+        ]
+    },
+    {
         "asset_key": "forest_background",
         "category": "background",
         "image_url": "/static/images/forest_background.png",
@@ -5137,7 +5344,6 @@ ASSETS = [
 ]
 
 
-
 # 单个 icon 或 background 的额外备选音频统一维护在这里。
 # 现有 audio_url 会在下方自动转换为 <asset_key>_default，作为默认音频；
 # audio_url 为 None 时，也可以只提供非默认的备选音频。
@@ -5238,7 +5444,20 @@ ADDITIONAL_AUDIO_OPTIONS: dict[str, list[dict]] = {
             "sort_order": 3,
         },
     ],
-
+    "lighthouse":[
+            {
+                "audio_key": "bell_of_clock_tower",
+                "audio_url": "/static/audio/bell_of_clock_tower.wav",
+                "sort_order": 1,
+            },
+    ],
+    "thunder":[
+            {
+                "audio_key": "thunder_and_rain",
+                "audio_url": "/static/audio/thunder_and_rain.wav",
+                "sort_order": 1,
+            },
+    ],
 }
 
 
@@ -5257,22 +5476,22 @@ SHARED_AUDIO_OPTIONS: list[dict] = [
     {
         "audio_key_suffix": "normal_walking",
         "audio_url": "/static/audio/normal_walking.wav",
-        "asset_keys": ["man", "woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
+        "asset_keys": ["man", "postman_walking","woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
     },
     {
         "audio_key_suffix": "brisk_walking",
         "audio_url": "/static/audio/brisk_walking.wav",
-        "asset_keys": ["man", "woman",],
+        "asset_keys": ["man", "postman_walking","woman",],
     },
     {
         "audio_key_suffix": "clothing_rustling",
         "audio_url": "/static/audio/clothing_rustling.wav",
-        "asset_keys": ["man", "woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
+        "asset_keys": ["man", "postman_walking","woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
     },
     {
         "audio_key_suffix": "country_road_walking_medium_speed",
         "audio_url": "/static/audio/country_road_walking_medium_speed.wav",
-        "asset_keys": ["man", "woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
+        "asset_keys": ["man", "postman_walking","woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
     },
     {
         "audio_key_suffix": "creaking",
@@ -5282,27 +5501,42 @@ SHARED_AUDIO_OPTIONS: list[dict] = [
     {
         "audio_key_suffix": "hurried_footsteps",
         "audio_url": "/static/audio/hurried_footsteps.wav",
-        "asset_keys": ["man", "woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
+        "asset_keys": ["man", "postman_walking","woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
     },
+    {
+        "audio_key_suffix": "walking_on_beach",
+        "audio_url": "/static/audio/walking_on_beach.wav",
+        "asset_keys": ["man", "postman_walking","woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
+    },    
     {
         "audio_key_suffix": "packing_up",
         "audio_url": "/static/audio/packing_up.wav",
-        "asset_keys": ["man", "woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
+        "asset_keys": ["man", "postman_walking","woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
     },
     {
         "audio_key_suffix": "walking_on_snow",
         "audio_url": "/static/audio/walking_on_snow.wav",
-        "asset_keys": ["man", "woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
+        "asset_keys": ["man", "postman_walking","woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
     },
     {
         "audio_key_suffix": "walking_on_wooden_floor",
         "audio_url": "/static/audio/walking_on_wooden_floor.wav",
-        "asset_keys": ["man", "woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
+        "asset_keys": ["man","postman_walking", "woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor",],
     },
     {
         "audio_key_suffix": "orchard",
         "audio_url": "/static/audio/orchard_background.wav",
         "asset_keys": ["hillside_background", "village_crossroad_night_background", "village_night_background"],
+    },
+    {
+        "audio_key_suffix": "rain_against_objects",
+        "audio_url": "/static/audio/rain_against_objects.wav",
+        "asset_keys": ["rain", "storm_clouds","tree","bamboo","palm_tree"],
+    },
+    {
+        "audio_key_suffix": "step_on_tree_branch",
+        "audio_url": "/static/audio/step_on_tree_branch.wav",
+        "asset_keys": ["man", "postman_walking","woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor", "cow","bull","sheep","goat","horse","donkey","pig","dog","cat","squirrel","deer","bear","wolf","fox","fox_walking",],
     },
 ]
 
@@ -5334,6 +5568,11 @@ AUDIO_OPTION_NAMES: dict[str, dict[str, str]] = {
     "walking_on_snow": {"zh": "雪地脚步声", "ja": "雪の上を歩く足音", "en": "Footsteps on snow"},
     "walking_on_wooden_floor": {"zh": "木地板脚步声", "ja": "木の床を歩く足音", "en": "Footsteps on a wooden floor"},
     "orchard": {"zh": "果园环境声", "ja": "果樹園の環境音", "en": "Orchard ambience"},
+    "bell_of_clock_tower": {"zh": "钟楼钟声", "ja": "時計塔の鐘の音", "en": "Clock tower bell"},
+    "thunder_and_rain": {"zh": "雷雨声", "ja": "雷雨の音", "en": "Thunder and rain"},
+    "walking_on_beach": {"zh": "沙滩脚步声", "ja": "砂浜を歩く足音", "en": "Footsteps on a beach"},
+    "rain_against_objects": {"zh": "雨水敲打物体声", "ja": "物に当たる雨音", "en": "Rain hitting objects"},
+    "step_on_tree_branch": {"zh": "踩到树枝的声音", "ja": "枝を踏む音", "en": "Stepping on a tree branch"},
 }
 
 

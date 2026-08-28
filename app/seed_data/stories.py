@@ -202,4 +202,56 @@ STORIES = [
         ]
 
     },
+    {
+        "slug": "demo_story",
+        "thumbnail_url": "/static/stories_img/demo_story.png",
+        "free_creation_step_orders": [3],
+        "contents":[
+            {
+                "language": "ja",
+                "title": "雨の森",
+                "description": "森の中で雨の音に耳を傾けてください。",
+                "steps": [
+                    "暗い雲が、ゆっくりと森の上を流れていった。",
+                    "雨のしずくが、葉っぱに落ちた。",
+                    "小さなカエルが、水辺で歌っていた。",
+                ],
+            },
+            {
+                "language": "zh",
+                "title": "海洋之主",
+                "description": "蓝鲸认为自己是海洋里最大的生物，于是出发去往更远的海域中冒险……",
+                "steps": [
+                    {
+                        "sentence": (
+                            "清晨的海面上泛起阵阵波涛，巨大的海浪犹如一堵墙咆哮而来。附近的渔船鸣着笛慌乱躲避，而海面下浮出一抹蓝色的巨大身影。"
+                        ),
+                        "audio_url": "/static/stories_audio/zh/demo_p1.wav",
+                    },
+                    {
+                        "sentence": (
+                            "“我已经是这附近最大的动物了，就连渔船也不是我的对手。”蓝鲸在海底对一众小鱼说，“所以我要去更远的海域冒险。”"
+                        ),
+                        "audio_url": "/static/stories_audio/zh/demo_p2.wav",
+                    },
+                    {
+                        "sentence": "故事到这里还没有结束，请发挥想象，自由设计专属于你们的结局吧。",
+                        "audio_url": None,
+                    }, 
+                                                                                                         
+                ],
+            },
+            {
+                "language": "en",
+                "title": "Rainy Forest",
+                "description": "Listening to the Rain in the Forest",
+                "steps": [
+                    "Dark clouds slowly drifted over the forest.",
+                    "Raindrops fell on the leaves.",
+                    "The little frog sang by the water.",
+                ],
+            },
+        ]
+
+    },
 ]

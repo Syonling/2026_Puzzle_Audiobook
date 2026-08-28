@@ -31,7 +31,11 @@ function readState() {
             0,
             Number(state.remainingMilliseconds) || configuredSeconds * 1000,
         );
-        endAt = Number.isFinite(Number(state.endAt)) ? Number(state.endAt) : null;
+        endAt = state.endAt !== null
+            && state.endAt !== undefined
+            && Number.isFinite(Number(state.endAt))
+            ? Number(state.endAt)
+            : null;
         if (endAt !== null) remainingMilliseconds = Math.max(0, endAt - Date.now());
     } catch {
         sessionStorage.removeItem(STORAGE_KEY);

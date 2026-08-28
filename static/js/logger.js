@@ -20,6 +20,7 @@ let flushInFlight = false;
 let nextFlushAt = 0;
 let activePreviewStartedAt = null;
 let currentSuggestionId = null;
+let contextSwitchSnapshotCaptured = false;
 const objectSources = new Map();
 const objectSuggestionIds = new Map();
 const suggestedAssetKeys = new Set();
@@ -333,8 +334,11 @@ function handleAudioChange(event) {
     previousAudio = clone(current);
 }
 
-function endCurrentPage(reason) {
+function endCurrentPage(reason, captureFinalSnapshot = true) {
     if (!pageContext || !pageStartedAt) return;
+    if (captureFinalSnapshot) {
+        snapshot("page_end", { reason });
+    }
     track("page_end", {
         story_id: pageContext.storyId,
         page_id: pageContext.stepId,
@@ -345,7 +349,14 @@ function endCurrentPage(reason) {
             duration_ms: Math.max(0, Date.now() - Date.parse(pageStartedAt)),
         },
     });
+    pageStartedAt = null;
 }
+
+window.addEventListener("puzzle-audiobook:before-context-switch", () => {
+    if (!pageContext || !pageStartedAt) return;
+    snapshot("page_end", { reason: "context_switch" });
+    contextSwitchSnapshotCaptured = true;
+});
 
 window.addEventListener("puzzle-audiobook:step-change", (event) => {
     const next = event.detail;
@@ -360,9 +371,10 @@ window.addEventListener("puzzle-audiobook:step-change", (event) => {
         return;
     }
 
-    if (pageContext?.stepId !== next?.stepId) {
+    if (!isSamePage) {
         const previous = pageContext ? { ...pageContext } : null;
-        endCurrentPage("page_switch");
+        endCurrentPage("page_switch", !contextSwitchSnapshotCaptured);
+        contextSwitchSnapshotCaptured = false;
         if (previous) {
             track("page_switch", {
                 story_id: next?.storyId,
@@ -605,6 +617,7 @@ window.addEventListener("puzzle-audiobook:authenticated", (event) => {
     });
 });
 window.addEventListener("puzzle-audiobook:session-ending", () => {
+    endCurrentPage("session_end");
     track("session_ended", { target_type: "session" });
     persistQueue();
 });

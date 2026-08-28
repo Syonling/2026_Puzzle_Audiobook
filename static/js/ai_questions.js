@@ -17,7 +17,7 @@ import {
     beginAIPreview,
     rejectAIPreview,
 } from "./projects.js?v=20260829-4";
-import { getEventSessionId } from "./logger.js?v=20260829-4";
+import { getEventSessionId } from "./logger.js?v=20260829-5";
 
 const form = document.querySelector("[data-ai-question-form]");
 const input = document.querySelector("[data-ai-question-input]");

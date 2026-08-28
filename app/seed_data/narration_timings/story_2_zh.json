@@ -1,0 +1,314 @@
+{
+  "story_id": 2,
+  "language": "zh",
+  "steps": [
+    {
+      "step_order": 1,
+      "duration_seconds": 25,
+      "cues": [
+        {
+          "text": "清晨的山谷沐浴在阳光下，",
+          "start_seconds": 0,
+          "end_seconds": 3
+        },
+        {
+          "text": "狐狸从洞穴里走出来，伸了个懒腰",
+          "start_seconds": 3,
+          "end_seconds": 7
+        },
+        {
+          "text": "它摸了摸饿扁的肚子，在附近的灌木丛中翻找起来。",
+          "start_seconds": 7,
+          "end_seconds": 12
+        },
+        {
+          "text": "忽然，它发现了一颗从未见过的种子。种子比它平日见过的大一些，旁边还落着一个小小的铃铛。",
+          "start_seconds": 12,
+          "end_seconds": 22
+        },
+        {
+          "text": "狐狸好奇地将它们带回了洞穴",
+          "start_seconds": 22,
+          "end_seconds": 25
+        }
+      ]
+    },
+    {
+      "step_order": 2,
+      "duration_seconds": 34,
+      "cues": [
+        {
+          "text": "一场大雨过后，洞穴里的空气仿佛吸饱了水，轻轻一触便有凉意贴在皮毛上",
+          "start_seconds": 0,
+          "end_seconds": 8
+        },
+        {
+          "text": "狐狸抖了抖湿漉漉的毛，发现种子的外壳已经裂开一道细缝，一点嫩绿的颜色从里面露了出来",
+          "start_seconds": 8,
+          "end_seconds": 17
+        },
+        {
+          "text": "“它会长成什么呢？”狐狸想，“可是这里没有阳光，不适合它的生长呀。”",
+          "start_seconds": 17,
+          "end_seconds": 25
+        },
+        {
+          "text": "狐狸轻轻将种子和铃铛放进包袱中，",
+          "start_seconds": 25,
+          "end_seconds": 29
+        },
+        {
+          "text": "离开了洞穴",
+          "start_seconds": 29,
+          "end_seconds": 31
+        },
+        {
+          "text": "它决定去找一个适合种子生长的地方",
+          "start_seconds": 31,
+          "end_seconds": 34
+        }
+      ]
+    },
+    {
+      "step_order": 3,
+      "duration_seconds": 30,
+      "cues": [
+        {
+          "text": "狐狸来到溪边",
+          "start_seconds": 0,
+          "end_seconds": 2
+        },
+        {
+          "text": "几只小动物正在岸边歇息",
+          "start_seconds": 2,
+          "end_seconds": 5
+        },
+        {
+          "text": "有的低头喝水",
+          "start_seconds": 5,
+          "end_seconds": 7
+        },
+        {
+          "text": "有的在草丛间寻找食物",
+          "start_seconds": 7,
+          "end_seconds": 10
+        },
+        {
+          "text": "正准备继续赶路时，",
+          "start_seconds": 10,
+          "end_seconds": 12
+        },
+        {
+          "text": "狐狸忽然听见头顶传来一声清脆的铃音。它抬头看去，只见一根树枝上挂着一只铃铛，和自己捡到的那只十分相似。",
+          "start_seconds": 12,
+          "end_seconds": 25
+        },
+        {
+          "text": "它停下来仔细看了看，随后沿着溪流继续向前走去。",
+          "start_seconds": 25,
+          "end_seconds": 30
+        }
+      ]
+    },
+    {
+      "step_order": 4,
+      "duration_seconds": 24,
+      "cues": [
+        {
+          "text": "狐狸来到了一片果园",
+          "start_seconds": 0,
+          "end_seconds": 2
+        },
+        {
+          "text": "几棵果树齐齐地立在草地上，枝头坠着火红的果子。",
+          "start_seconds": 2,
+          "end_seconds": 8
+        },
+        {
+          "text": "狐狸饿坏了，它四下看了看，小心地靠过去。",
+          "start_seconds": 8,
+          "end_seconds": 13
+        },
+        {
+          "text": "正当它打算摘一颗离自己最近的果子时，",
+          "start_seconds": 13,
+          "end_seconds": 17
+        },
+        {
+          "text": "不小心踩进了草丛。",
+          "start_seconds": 17,
+          "end_seconds": 19
+        },
+        {
+          "text": "草丛中堆放的农具倒了下来，狐狸被吓了一跳。",
+          "start_seconds": 19,
+          "end_seconds": 24
+        }
+      ]
+    },
+    {
+      "step_order": 5,
+      "duration_seconds": 31,
+      "cues": [
+        {
+          "text": "山间的旷野一望无际",
+          "start_seconds": 0,
+          "end_seconds": 2
+        },
+        {
+          "text": "风渐渐急了起来",
+          "start_seconds":2,
+          "end_seconds": 5
+        },
+        {
+          "text": "远处的乌云正越过山头，传来阵阵轰鸣",
+          "start_seconds": 5,
+          "end_seconds": 9
+        },
+        {
+          "text": "几只动物已经躲到树下。狐狸也慌忙寻找避雨的地方",
+          "start_seconds": 9,
+          "end_seconds": 15
+        },
+        {
+          "text": "却又看见一只熟悉的铃铛挂在远处的树梢上，随风摇晃",
+          "start_seconds": 15,
+          "end_seconds": 21
+        },
+        {
+          "text": "雨开始落下，将草地与远山都笼进了灰濛濛的水汽里",
+          "start_seconds": 21,
+          "end_seconds": 27
+        },
+        {
+          "text": "狐狸紧了紧背上的包袱，向前方的树林跑去。",
+          "start_seconds": 27,
+          "end_seconds": 31
+        }
+      ]
+    },
+    {
+      "step_order": 6,
+      "duration_seconds": 27,
+      "cues": [
+        {
+          "text": "树林里的雨比狐狸想得更大",
+          "start_seconds": 0,
+          "end_seconds": 3
+        },
+        {
+          "text": "枝桠间穿梭的风重重敲打在心头",
+          "start_seconds": 3,
+          "end_seconds": 7
+        },
+        {
+          "text": "狐狸找到一处可以暂时避雨的地方",
+          "start_seconds": 7,
+          "end_seconds": 10
+        },
+        {
+          "text": "将包袱放下",
+          "start_seconds": 10,
+          "end_seconds": 12
+        },
+        {
+          "text": "就在它捧出种子的一瞬间，种子脆弱的外壳突然迸裂，一株小小的嫩芽从里面伸长出来。",
+          "start_seconds": 12,
+          "end_seconds": 21
+        },
+        {
+          "text": "铃铛滚落在地上",
+          "start_seconds": 21,
+          "end_seconds": 23
+        },
+        {
+          "text": "狐狸捡起它，擦干净放回了包裹",
+          "start_seconds": 23,
+          "end_seconds": 27
+        }
+      ]
+    },
+    {
+      "step_order": 7,
+      "duration_seconds": 36,
+      "cues": [
+        {
+          "text": "不知过了多久，雨终于停了",
+          "start_seconds": 0,
+          "end_seconds": 3
+        },
+        {
+          "text": "云层慢慢散开，草叶上的水珠在阳光下闪动着微光。",
+          "start_seconds": 3,
+          "end_seconds": 9
+        },
+        {
+          "text": "狐狸沿着山坡一路向上，",
+          "start_seconds": 9,
+          "end_seconds": 12
+        },
+        {
+          "text": "路过几只觅食的麻雀时，它停下来，问：“你好，请问你们知道这颗种子应该种在哪里吗？”",
+          "start_seconds": 12,
+          "end_seconds": 22
+        },
+        {
+          "text": "一只麻雀摇摇头，“不知道，不过我们可以把它吃掉。”",
+          "start_seconds": 22,
+          "end_seconds": 28
+        },
+        {
+          "text": "“我不觉得这是个好主意。”",
+          "start_seconds": 28,
+          "end_seconds": 30
+        },
+        {
+          "text": "狐狸不开心地离开了，留下身后麻雀们叽叽喳喳地小声讨论着什么。",
+          "start_seconds": 30,
+          "end_seconds": 36
+        }
+      ]
+    },
+    {
+      "step_order": 8,
+      "duration_seconds":40,
+      "cues": [
+        {
+          "text": "狐狸登上山坡的尽头，一片平原在眼前铺展开来",
+          "start_seconds": 0,
+          "end_seconds": 5
+        },
+        {
+          "text": "狐狸从未见过这样美的景色，不禁发出一声低鸣",
+          "start_seconds": 5,
+          "end_seconds": 11
+        },
+        {
+          "text": "声音无遮无拦地走向远方，碰撞在连绵的山峰之上",
+          "start_seconds": 11,
+          "end_seconds": 16
+        },
+        {
+          "text": "合着细碎穿梭的风，让狐狸心旷神往",
+          "start_seconds": 16,
+          "end_seconds": 21
+        },
+        {
+          "text": "忽然一只铃铛滚到脚边。狐狸拾起它，注意到不远处一串清晰的足迹",
+          "start_seconds": 21,
+          "end_seconds": 29
+        },
+        {
+          "text": "它晃了晃铃铛，从风中传来若有似无的回响",
+          "start_seconds": 29,
+          "end_seconds": 33
+        },
+        {
+          "text": "狐狸决定顺着足迹找过去。它的身影渐渐消失在平原深处",
+          "start_seconds": 33,
+          "end_seconds": 40
+        }
+      ]
+    }
+  ]
+}
