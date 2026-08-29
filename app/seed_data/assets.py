@@ -5603,6 +5603,21 @@ AUDIO_OPTION_NAMES: dict[str, dict[str, str]] = {
     "walking_on_beach": {"zh": "沙滩脚步声", "ja": "砂浜を歩く足音", "en": "Footsteps on a beach"},
     "rain_against_objects": {"zh": "雨水敲打物体声", "ja": "物に当たる雨音", "en": "Rain hitting objects"},
     "step_on_tree_branch": {"zh": "踩到树枝的声音", "ja": "枝を踏む音", "en": "Stepping on a tree branch"},
+    "animal_drinking": {
+        "zh": "动物喝水声",
+        "ja": "動物が水を飲む音",
+        "en": "Animal drinking",
+    },
+    "animal_running": {
+        "zh": "动物奔跑声",
+        "ja": "動物が走る音",
+        "en": "Animal running",
+    },
+    "animal_walking": {
+        "zh": "动物行走声",
+        "ja": "動物が歩く音",
+        "en": "Animal walking",
+    },
 }
 
 
