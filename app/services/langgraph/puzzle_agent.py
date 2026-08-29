@@ -272,23 +272,10 @@ def _asset_rules(asset_context):
         for asset_key, options
         in asset_context["audio_options_by_asset"].items()
     }
-    default_audio_by_asset = {
-        asset_key: next(
-            (
-                option["audio_key"]
-                for option in options
-                if option["is_default"]
-            ),
-            None,
-        )
-        for asset_key, options
-        in asset_context["audio_options_by_asset"].items()
-    }
     return (
         icon_keys,
         background_by_key,
         audio_by_asset,
-        default_audio_by_asset,
     )
 
 
@@ -296,12 +283,17 @@ def _validated_audio_key(
     asset_key: str,
     selected_audio_key: str | None,
     audio_by_asset,
-    default_audio_by_asset,
 ) -> str | None:
+    if selected_audio_key is None:
+        return None
+
     available = audio_by_asset.get(asset_key, {})
-    if selected_audio_key in available:
-        return selected_audio_key
-    return default_audio_by_asset.get(asset_key)
+    if selected_audio_key not in available:
+        raise ValueError(
+            "LLM returned an invalid audio key: "
+            f"asset_key={asset_key}, audio_key={selected_audio_key}"
+        )
+    return selected_audio_key
 
 
 def _apply_decorative_layout(canvas: dict[str, object]) -> None:
@@ -408,7 +400,6 @@ async def llm_call_1(state: State):
         allowed_icon_keys,
         background_by_key,
         audio_by_asset,
-        default_audio_by_asset,
     ) = _asset_rules(asset_context)
 
     analysis_input = {
@@ -477,7 +468,6 @@ async def llm_call_1(state: State):
             suggestion.asset_key,
             suggestion.selected_audio_key,
             audio_by_asset,
-            default_audio_by_asset,
         )
         if audio_key is None:
             continue
@@ -517,7 +507,6 @@ async def llm_call_2(state: State):
         allowed_icon_keys,
         background_by_key,
         audio_by_asset,
-        default_audio_by_asset,
     ) = _asset_rules(asset_context)
 
     design_input = {
@@ -599,7 +588,6 @@ async def llm_call_2(state: State):
             obj["asset_key"],
             obj["selected_audio_key"],
             audio_by_asset,
-            default_audio_by_asset,
         )
         obj["selected_audio_key"] = audio_key
         if audio_key is None:
@@ -631,7 +619,6 @@ async def llm_call_2(state: State):
             canvas["background_key"],
             canvas["selected_background_audio_key"],
             audio_by_asset,
-            default_audio_by_asset,
         )
     canvas["selected_background_audio_key"] = (
         selected_background_audio_key

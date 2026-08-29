@@ -354,7 +354,7 @@ ASSETS = [
         "asset_key": "fox",
         "category": "animals",
         "image_url": "/static/images/fox.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/fox.wav",
         "contents": [
             {
                 "language": "ja",
@@ -1067,7 +1067,7 @@ ASSETS = [
         "asset_key": "seagulls_flying",
         "category": "birds",
         "image_url": "/static/images/seagulls_flying.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/seagulls_flying.wav",
         "contents": [
             {
                 "language": "ja",
@@ -4080,7 +4080,7 @@ ASSETS = [
         "asset_key": "scattered_farm_tools",
         "category": "daily_life",
         "image_url": "/static/images/scattered_farm_tools.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/throwing_tools.wav",
         "contents": [
             {
                 "language": "ja",
@@ -5537,6 +5537,36 @@ SHARED_AUDIO_OPTIONS: list[dict] = [
         "audio_key_suffix": "step_on_tree_branch",
         "audio_url": "/static/audio/step_on_tree_branch.wav",
         "asset_keys": ["man", "postman_walking","woman","farmer", "grandpa", "grandma", "fisherman", "postman", "sailor", "cow","bull","sheep","goat","horse","donkey","pig","dog","cat","squirrel","deer","bear","wolf","fox","fox_walking",],
+    },
+    {
+        "audio_key_suffix": "animal_drinking",
+        "audio_url": "/static/audio/animal_drinking.wav",
+        "asset_keys": [
+            "cow", "bull", "sheep", "goat", "horse", "donkey", "pig",
+            "dog", "cat", "mouse", "rabbit", "squirrel", "deer", "bear",
+            "wolf", "fox", "elephant", "lion", "tiger", "monkey", "snake",
+            "fox_walking", "horses_running",
+        ],
+    },
+    {
+        "audio_key_suffix": "animal_running",
+        "audio_url": "/static/audio/animal_running.wav",
+        "asset_keys": [
+            "cow", "bull", "sheep", "goat", "horse", "donkey", "pig",
+            "dog", "cat", "mouse", "rabbit", "squirrel", "deer", "bear",
+            "wolf", "fox", "elephant", "lion", "tiger", "monkey", "snake",
+            "fox_walking", "horses_running",
+        ],
+    },
+    {
+        "audio_key_suffix": "animal_walking",
+        "audio_url": "/static/audio/animal_walking.wav",
+        "asset_keys": [
+            "cow", "bull", "sheep", "goat", "horse", "donkey", "pig",
+            "dog", "cat", "mouse", "rabbit", "squirrel", "deer", "bear",
+            "wolf", "fox", "elephant", "lion", "tiger", "monkey", "snake",
+            "fox_walking", "horses_running",
+        ],
     },
 ]
 
