@@ -10,7 +10,7 @@ import {
     restoreRemoteCanvas,
     showRemoteCanvasLoading,
     storeRemoteCanvas,
-} from "./canvas.js?v=20260829-4";
+} from "./canvas.js?v=20260830-1";
 import {
     activateDraftAudio,
     clearAudioCache,
@@ -21,7 +21,7 @@ import {
     showRemoteAudioLoading,
     storeRemoteAudio,
     syncAudioToCanvasObjects,
-} from "./audio.js?v=20260829-4";
+} from "./audio.js?v=20260830-5";
 
 const getDefaultProjectTitle = () => t("project.unnamed");
 const saveButton = document.querySelector("[data-save-project]");

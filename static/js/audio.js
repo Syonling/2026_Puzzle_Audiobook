@@ -2,7 +2,13 @@ import { t } from "./i18n.js?v=20260829-4";
 
 const DEFAULT_DURATION = 15;
 // 保留既有 ID 以兼容已保存项目；数组顺序就是界面与后端序列化顺序。
-const TRACK_IDS = Object.freeze(["narration", "free", "effects"]);
+const TRACK_IDS = Object.freeze([
+    "narration",
+    "free",
+    "effects",
+    "effects_2",
+    "effects_3",
+]);
 const LOCKED_TRACK_ID = "narration";
 const NARRATION_AUDIO_INSTANCE_ID = "story-step-narration";
 const BACKGROUND_AUDIO_INSTANCE_ID = "canvas-background";
@@ -335,6 +341,8 @@ function openAILockDialog() {
 function getTrackDisplayName(trackId) {
     if (trackId === "narration") return t("audio.narration");
     if (trackId === "free") return t("audio.background");
+    if (trackId === "effects_2") return t("audio.freeTrack4");
+    if (trackId === "effects_3") return t("audio.freeTrack5");
     return t("audio.effects");
 }
 
@@ -1086,6 +1094,8 @@ function movePlayheadElement() {
     const duration = getTimelineDuration();
     const ratio = Math.min(1, Math.max(0, currentTime / duration));
     playhead.style.left = (laneRect.left - editorRect.left + laneRect.width * ratio) + "px";
+    playhead.style.top = (editor.scrollTop + 19) + "px";
+    playhead.style.height = Math.max(0, editor.clientHeight - 19) + "px";
 }
 
 function createClipElement(clip, duration, trackId) {
@@ -1617,9 +1627,9 @@ function beginClipDrag(event, clip, element) {
     if (!lane) return;
     const sourceTrackId = lane.dataset.audioLane;
     if (sourceTrackId === LOCKED_TRACK_ID) return;
-    const requiredTrackId = clip.object_instance_id === BACKGROUND_AUDIO_INSTANCE_ID
-        ? "free"
-        : "effects";
+    const allowedTargetTrackIds = clip.object_instance_id === BACKGROUND_AUDIO_INSTANCE_ID
+        ? new Set(["free"])
+        : new Set(["effects", "effects_2", "effects_3"]);
     let targetTrackId = sourceTrackId;
     const duration = getTimelineDuration();
     const originalStart = clip.start_time;
@@ -1627,22 +1637,46 @@ function beginClipDrag(event, clip, element) {
     let changed = false;
     let historyCaptured = false;
     element.classList.add("is-dragging");
+    try {
+        element.setPointerCapture(event.pointerId);
+    } catch {
+        // 部分浏览器不支持对动态音频块设置指针捕获。
+    }
+
+    function findEligibleLane(clientY) {
+        const targetRow = [...document.querySelectorAll("[data-audio-track]")]
+            .find((candidate) => {
+                if (!allowedTargetTrackIds.has(candidate.dataset.audioTrack)) return false;
+                const rect = candidate.getBoundingClientRect();
+                return clientY >= rect.top && clientY <= rect.bottom;
+            });
+        return targetRow?.querySelector("[data-audio-lane]") || null;
+    }
 
     function onMove(pointerEvent) {
-        const hoveredLane = document.elementFromPoint(
-            pointerEvent.clientX,
-            pointerEvent.clientY,
-        )?.closest("[data-audio-lane]");
-        const eligibleLane = hoveredLane?.dataset.audioLane === requiredTrackId
-            ? hoveredLane
-            : null;
-        if (hoveredLane && hoveredLane.dataset.audioLane !== requiredTrackId) {
-            targetTrackId = sourceTrackId;
+        if (editor) {
+            const editorRect = editor.getBoundingClientRect();
+            const scrollEdge = 32;
+            if (
+                pointerEvent.clientY > editorRect.bottom - scrollEdge
+                && editor.scrollTop < editor.scrollHeight - editor.clientHeight
+            ) {
+                editor.scrollTop = Math.min(
+                    editor.scrollHeight - editor.clientHeight,
+                    editor.scrollTop + 10,
+                );
+            } else if (
+                pointerEvent.clientY < editorRect.top + scrollEdge
+                && editor.scrollTop > 0
+            ) {
+                editor.scrollTop = Math.max(0, editor.scrollTop - 10);
+            }
         }
+        const eligibleLane = findEligibleLane(pointerEvent.clientY);
+        targetTrackId = eligibleLane?.dataset.audioLane || sourceTrackId;
         document.querySelectorAll("[data-audio-lane]").forEach((candidate) => {
             candidate.classList.toggle("is-clip-drop-target", candidate === eligibleLane);
         });
-        if (eligibleLane) targetTrackId = eligibleLane.dataset.audioLane;
         const laneWidth = (eligibleLane || lane).getBoundingClientRect().width;
         const deltaTime = (pointerEvent.clientX - startX) / laneWidth * duration;
         const nextStart = Math.max(0, Math.min(duration - clip.duration, originalStart + deltaTime));
@@ -1654,9 +1688,11 @@ function beginClipDrag(event, clip, element) {
         clip.start_time = nextStart;
         element.style.left = (nextStart / duration * 100) + "%";
     }
-    function onEnd() {
+    function onEnd(pointerEvent) {
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onEnd);
+        const eligibleLane = findEligibleLane(pointerEvent.clientY);
+        targetTrackId = eligibleLane?.dataset.audioLane || sourceTrackId;
         clip.start_time = Math.round(clip.start_time * 10) / 10;
         document.querySelectorAll("[data-audio-lane].is-clip-drop-target").forEach(
             (candidate) => candidate.classList.remove("is-clip-drop-target"),
@@ -1666,12 +1702,21 @@ function beginClipDrag(event, clip, element) {
             const sourceTrack = getTrack(audio, sourceTrackId);
             const targetTrack = getTrack(audio, targetTrackId);
             if (sourceTrack && targetTrack) {
+                if (!historyCaptured) {
+                    notifyHistoryCheckpoint();
+                    historyCaptured = true;
+                }
                 sourceTrack.clips = sourceTrack.clips.filter(
                     (candidate) => candidate.clip_id !== clip.clip_id,
                 );
                 targetTrack.clips.push(clip);
                 changed = true;
             }
+        }
+        try {
+            element.releasePointerCapture(pointerEvent.pointerId);
+        } catch {
+            // 指针捕获可能已由浏览器自动释放。
         }
         element.classList.remove("is-dragging");
         renderAudio();
@@ -2343,6 +2388,7 @@ editor?.addEventListener("pointerdown", (event) => {
     haltPlayback();
     setPlayheadFromClientX(event.clientX);
 });
+editor?.addEventListener("scroll", movePlayheadElement, { passive: true });
 window.addEventListener("keydown", (event) => {
     if (event.code !== "Space" || event.repeat) return;
     const activeElement = document.activeElement;
@@ -2383,12 +2429,21 @@ window.addEventListener("puzzle-audiobook:canvas-object-selected", (event) => {
     ) {
         selectedCanvasObject = null;
     } else {
+        const localizedAsset = localizedAssetsByKey.get(
+            event.detail.object.asset_key,
+        );
         objectScaleByInstanceId.set(
             event.detail.object.instance_id,
             Math.max(0.35, Number(event.detail.object.scale) || 1),
         );
         selectedCanvasObject = {
+            ...(localizedAsset || {}),
             ...event.detail.object,
+            audio_options: Array.isArray(event.detail.object.audio_options)
+                ? event.detail.object.audio_options.map((option) => ({ ...option }))
+                : Array.isArray(localizedAsset?.audio_options)
+                    ? localizedAsset.audio_options.map((option) => ({ ...option }))
+                    : [],
             selectionStepId: event.detail.context.stepId,
         };
     }

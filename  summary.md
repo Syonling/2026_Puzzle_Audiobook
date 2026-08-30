@@ -1,3 +1,12 @@
+# 增加新音频
+先预览数据库变化：
+poetry run python -m app.services.sync_asset_audio
+确认后正式同步：
+poetry run python -m app.services.sync_asset_audio --apply
+它会先自动备份数据库，再更新音频相关数据。
+最后启动后端：
+poetry run python -m app.main
+
 # AI 请求体
 
 ```python

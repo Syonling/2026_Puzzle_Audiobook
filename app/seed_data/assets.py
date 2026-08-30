@@ -4011,7 +4011,7 @@ ASSETS = [
         "asset_key": "bell",
         "category": "daily_life",
         "image_url": "/static/images/bell.png",
-        "audio_url": None,
+        "audio_url": "/static/audio/bell.wav",
         "contents": [
             {
                 "language": "ja",
@@ -5458,6 +5458,13 @@ ADDITIONAL_AUDIO_OPTIONS: dict[str, list[dict]] = {
                 "sort_order": 1,
             },
     ],
+    "old_fishing_boat":[
+            {
+                "audio_key": "ship_whistle",
+                "audio_url": "/static/audio/ship.wav",
+                "sort_order": 1,
+            },
+    ],
 }
 
 
@@ -5568,6 +5575,11 @@ SHARED_AUDIO_OPTIONS: list[dict] = [
             "fox_walking", "horses_running",
         ],
     },
+    {
+        "audio_key_suffix": "single_water_drop",
+        "audio_url": "/static/audio/single_water_drop.wav",
+        "asset_keys": ["dew_grass"],
+    },
 ]
 
 
@@ -5617,6 +5629,11 @@ AUDIO_OPTION_NAMES: dict[str, dict[str, str]] = {
         "zh": "动物行走声",
         "ja": "動物が歩く音",
         "en": "Animal walking",
+    },
+    "ship_whistle": {
+        "zh": "船笛声",
+        "ja": "汽笛の音",
+        "en": "Ship whistle",
     },
 }
 

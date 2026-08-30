@@ -396,11 +396,20 @@ function createObjectElement(object) {
     });
 
     wrapper.append(image, toolbar, resizeHandle, rotateHandle);
+    wrapper.addEventListener("pointerdown", () => {
+        if (selectedObjectId !== object.instance_id) {
+            selectObject(object.instance_id);
+        }
+    }, { capture: true });
     wrapper.addEventListener("pointerdown", (event) => {
         if (event.target.closest("button")) return;
         moveObject(event, wrapper, object);
     });
-    wrapper.addEventListener("focus", () => selectObject(object.instance_id));
+    wrapper.addEventListener("focus", () => {
+        if (selectedObjectId !== object.instance_id) {
+            selectObject(object.instance_id);
+        }
+    });
     updateObjectElement(wrapper, object);
     return wrapper;
 }
@@ -463,10 +472,19 @@ function selectObject(instanceId) {
     const object = instanceId
         ? getActiveCanvas()?.objects.find((item) => item.instance_id === instanceId)
         : null;
+    const localizedAsset = object
+        ? localizedAssetsByKey.get(object.asset_key)
+        : null;
     window.dispatchEvent(new CustomEvent("puzzle-audiobook:canvas-object-selected", {
         detail: {
             context: activeContext ? { ...activeContext } : null,
-            object: object ? { ...object } : null,
+            object: object ? {
+                ...(localizedAsset || {}),
+                ...object,
+                audio_options: Array.isArray(localizedAsset?.audio_options)
+                    ? localizedAsset.audio_options.map((option) => ({ ...option }))
+                    : [],
+            } : null,
         },
     }));
 }

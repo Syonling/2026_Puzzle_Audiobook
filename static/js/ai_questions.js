@@ -6,18 +6,18 @@ import {
     replaceActiveCanvasFromAI,
     restoreActiveCanvasSnapshot,
     setCanvasAIPreviewLocked,
-} from "./canvas.js?v=20260829-4";
+} from "./canvas.js?v=20260830-1";
 import {
     getActiveAudioSnapshot,
     restoreActiveAudioSnapshot,
     setAudioAIPreviewLocked,
-} from "./audio.js?v=20260829-4";
+} from "./audio.js?v=20260830-5";
 import {
     acceptAIPreview,
     beginAIPreview,
     rejectAIPreview,
-} from "./projects.js?v=20260829-4";
-import { getEventSessionId } from "./logger.js?v=20260829-5";
+} from "./projects.js?v=20260830-1";
+import { getEventSessionId } from "./logger.js?v=20260830-1";
 
 const form = document.querySelector("[data-ai-question-form]");
 const input = document.querySelector("[data-ai-question-input]");

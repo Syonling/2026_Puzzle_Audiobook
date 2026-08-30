@@ -2085,7 +2085,9 @@ p {
 .audio-track-placeholder {
     display: grid;
     width: min(100%, 936px);
-    min-height: 199px;
+    height: 260px;
+    min-height: 260px;
+    max-height: 260px;
     margin: 0 auto;
     padding: 10px 12px 12px;
     align-self: stretch;
@@ -2099,9 +2101,15 @@ p {
 .audio-track-editor {
     position: relative;
     display: grid;
+    height: 212px;
     min-height: 0;
-    grid-template-rows: 19px repeat(3, minmax(38px, 1fr));
+    grid-template-rows: 19px repeat(5, 38px);
     gap: 7px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
 }
 
 .audio-effect-buttons {
@@ -2236,9 +2244,12 @@ p {
 }
 
 .audio-time-ruler {
-    position: relative;
+    position: sticky;
+    z-index: 5;
+    top: 0;
     margin-left: 82px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+    background: rgba(248, 249, 251, 0.98);
 }
 
 .audio-time-tick {
@@ -2508,14 +2519,15 @@ p {
 .audio-clip.is-dragging {
     z-index: 2;
     opacity: 0.78;
+    pointer-events: none;
 }
 
 .audio-playhead {
     position: absolute;
-    z-index: 4;
+    z-index: 6;
     top: 19px;
-    bottom: 0;
     left: 66px;
+    height: calc(100% - 19px);
     width: 13px;
     padding: 0;
     border: 0;

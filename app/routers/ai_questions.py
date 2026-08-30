@@ -274,7 +274,7 @@ async def get_answer(request:AIQuestionRequest,
         # Experiment logging must not prevent the existing AI feature.
 
     safely_append_user_event_records(
-        current_user["id"],
+        current_user["username"],
         [{
             "record_type": "ai_request",
             "suggestion_id": suggestion_id,
@@ -318,7 +318,7 @@ async def get_answer(request:AIQuestionRequest,
                 suggestion_id,
             )
         safely_append_user_event_records(
-            current_user["id"],
+            current_user["username"],
             [{
                 "record_type": "ai_error",
                 "suggestion_id": suggestion_id,
@@ -696,7 +696,7 @@ async def get_answer(request:AIQuestionRequest,
         # The AI result remains valid even when optional experiment logging fails.
 
     safely_append_user_event_records(
-        current_user["id"],
+        current_user["username"],
         [{
             "record_type": "ai_response",
             "suggestion_id": suggestion_id,

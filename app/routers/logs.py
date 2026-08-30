@@ -301,7 +301,7 @@ def create_event_batch(
             detail="Failed to save event batch",
         ) from error
 
-    safely_append_user_event_records(user_id, file_records)
+    safely_append_user_event_records(current_user["username"], file_records)
     logger.info(
         "Interaction event batch processed | user_id=%s | received=%d | "
         "accepted=%d | rejected=%d | new_records=%d",

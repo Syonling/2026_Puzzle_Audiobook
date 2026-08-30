@@ -62,7 +62,7 @@ def register(user:UserCreate, db:sqlite3.Connection=Depends(get_db)):
         (cursor.lastrowid,),
     ).fetchone()
     safely_append_user_event_records(
-        row["id"],
+        row["username"],
         [{
             "record_type": "account_created",
             "user_id": row["id"],
@@ -98,7 +98,7 @@ def login(user:UserCreate, response:Response, db:sqlite3.Connection=Depends(get_
     )
     db.commit()
     safely_append_user_event_records(
-        row["id"],
+        row["username"],
         [{
             "record_type": "login",
             "user_id": row["id"],

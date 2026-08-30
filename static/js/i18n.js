@@ -124,6 +124,21 @@ Object.assign(messages.en, {
     "unsaved.title":"Save the current canvas?","unsaved.message":"The current canvas has unsaved changes. Save before switching?","unsaved.cancel":"Cancel","unsaved.discard":"Don't Save","unsaved.save":"Save and Switch","unsaved.saving":"Saving…","request.failed":"Request failed. Please try again later","project.finding":"Looking for an existing project…","project.invalid":"Invalid project response","project.found":"Found project #{id}","project.notCreated":"Project not created yet","project.lookupFailed":"Project lookup failed","project.loading":"Loading canvas…","project.loaded":"Canvas loaded","project.loadFailed":"Failed to load canvas","project.notReady":"The current canvas is not ready","project.saving":"Saving…","project.createInvalid":"Invalid project creation response","project.createdChanged":"Created project #{id}; there are newer changes","project.created":"Created and saved project #{id}","project.createdLoading":"Created project #{id}; loading the current canvas…","project.saveInvalid":"Invalid canvas save response","project.stepSavedChanged":"Saved step {order}; there are newer changes","project.stepSaved":"Step {order} saved","project.saveFailed":"Save failed. Please try again later","project.changed":"Unsaved changes"
 });
 
+Object.assign(messages.zh, {
+    "audio.freeTrack4": "自由音轨 4",
+    "audio.freeTrack5": "自由音轨 5",
+});
+
+Object.assign(messages.ja, {
+    "audio.freeTrack4": "フリートラック 4",
+    "audio.freeTrack5": "フリートラック 5",
+});
+
+Object.assign(messages.en, {
+    "audio.freeTrack4": "Free Track 4",
+    "audio.freeTrack5": "Free Track 5",
+});
+
 export function getLanguage() {
     const saved = localStorage.getItem(STORAGE_KEY);
     return SUPPORTED_LANGUAGES.has(saved) ? saved : "zh";

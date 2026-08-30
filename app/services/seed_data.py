@@ -270,17 +270,6 @@ def seed_database(connect) -> None:
         )
         )
 
-        # 先取消数据库中这个素材的旧默认标记，再按当前种子数据设置默认项。
-        # 从种子文件移除的旧备选音频不会被删除。
-        connect.execute(
-            """
-            UPDATE asset_audio_options
-            SET is_default = 0
-            WHERE asset_id = ?
-            """,
-            (asset_id["id"],),
-        )
-
         for option in _get_asset_audio_options(asset):
             connect.execute(
                 """
@@ -292,12 +281,7 @@ def seed_database(connect) -> None:
                     sort_order
                 )
                 VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(audio_key)
-                DO UPDATE SET
-                    asset_id = excluded.asset_id,
-                    audio_url = excluded.audio_url,
-                    is_default = excluded.is_default,
-                    sort_order = excluded.sort_order
+                ON CONFLICT DO NOTHING
                 """,
                 (
                     asset_id["id"],
@@ -327,7 +311,7 @@ def seed_database(connect) -> None:
                     )
                     VALUES (?, ?, ?)
                     ON CONFLICT(audio_option_id, language)
-                    DO UPDATE SET name = excluded.name
+                    DO NOTHING
                     """,
                     (
                         audio_option_id["id"],

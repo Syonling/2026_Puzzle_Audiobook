@@ -1,5 +1,5 @@
-import { getActiveCanvasContext, getActiveCanvasSnapshot } from "./canvas.js?v=20260829-4";
-import { getActiveAudioSnapshot } from "./audio.js?v=20260829-4";
+import { getActiveCanvasContext, getActiveCanvasSnapshot } from "./canvas.js?v=20260830-1";
+import { getActiveAudioSnapshot } from "./audio.js?v=20260830-5";
 
 const QUEUE_KEY = "puzzleAudiobook.eventQueue";
 const SESSION_KEY = "puzzleAudiobook.eventSessionId";
